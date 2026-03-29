@@ -4,151 +4,202 @@ import torch
 import segmentation_models_pytorch as smp
 import torchvision.transforms.functional as TF
 from PIL import Image
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from openai import OpenAI
 import time
 
-# ── 1. Page Configuration & Styling
-st.set_page_config(page_title="VisionOCT | Advanced Lesion Segmentation", layout="wide", page_icon="🔬")
+# ── 1. Page Configuration & Premium Styling
+st.set_page_config(page_title="VisionOCT Pro | Clinical Analytics", layout="wide", page_icon="🏥")
 
-# Professional CSS Injection
+# Professional CSS for a clean, medical-grade UI
 st.markdown("""
     <style>
-    /* Main Background & Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-    html, body, [class*="css"]  { font-family: 'Inter', sans-serif; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     
-    /* Header Styling */
     .main-header {
-        background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%);
-        padding: 2rem;
-        border-radius: 15px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        padding: 2.5rem;
+        border-radius: 20px;
         color: white;
         text-align: center;
         margin-bottom: 2rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid #334155;
     }
-    
-    /* Custom Cards */
-    .metric-card {
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
         background-color: #f8fafc;
+        border-radius: 10px;
+        padding: 0 25px;
+        font-weight: 600;
+    }
+    .metric-card {
+        background: white;
+        padding: 1.2rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         border: 1px solid #e2e8f0;
-        padding: 1.5rem;
-        border-radius: 12px;
         text-align: center;
-        transition: transform 0.2s;
     }
-    .metric-card:hover { transform: translateY(-5px); border-color: #3b82f6; }
-    
-    /* Button Styling */
-    .stButton>button {
-        width: 100%;
-        border-radius: 8px;
-        height: 3.5rem;
-        background-color: #2563eb;
-        color: white;
-        font-weight: bold;
-        border: none;
-        font-size: 1.1rem;
+    .report-box {
+        background-color: #f1f5f9;
+        border-left: 6px solid #0f172a;
+        padding: 25px;
+        border-radius: 10px;
+        font-size: 1.05rem;
+        line-height: 1.8;
     }
-    .stButton>button:hover { background-color: #1d4ed8; border: none; color: white; }
     </style>
     """, unsafe_allow_html=True)
 
-# ── 2. Constants & Model Loading
+# ── 2. Constants & Data Mapping (Based on your project)
 LABEL_MAP = [
-    ("Background",        (0,   0,   0  )), ("Drosenoid PED",     (248, 231, 180)),
-    ("Fibrovascular PED", (255, 53,  94 )), ("HRF",               (240, 120, 240)),
-    ("IRF",               (170, 223, 235)), ("PH",                (51,  221, 255)),
-    ("SHRM",              (204, 153, 51 )), ("SRF",               (42,  125, 209)),
+    ("Background", (0,0,0)), ("Drosenoid PED", (248,231,180)),
+    ("Fibrovascular PED", (255,53,94)), ("HRF", (240,120,240)),
+    ("IRF", (170,223,235)), ("PH", (51,221,255)),
+    ("SHRM", (204,153,51)), ("SRF", (42,125,209)),
 ]
+# Critical Fluid classes for medical progression tracking
+FLUID_CLASSES = ["IRF", "SRF", "Drosenoid PED", "Fibrovascular PED"]
 CLASS_COLORS = np.array([c for _, c in LABEL_MAP], dtype=np.uint8)
-IMG_SIZE, MEAN, STD = 256, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
+# ── 3. Core Engine: Model & Processing
 @st.cache_resource
 def load_model():
+    """Loads the U-Net model with EfficientNet-B0 backbone."""
     model = smp.Unet(encoder_name="efficientnet-b0", encoder_weights=None, in_channels=3, classes=len(LABEL_MAP))
+    # Map to CPU for Streamlit Cloud stability
     ckpt = torch.load("unet_oct_best_v2.pth", map_location="cpu", weights_only=False)
     model.load_state_dict(ckpt["weights"])
     model.eval()
     return model
 
-def preprocess(image):
-    orig_size = image.size
-    resized = image.resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR)
-    tensor = TF.normalize(TF.to_tensor(resized), MEAN, STD)
-    return tensor.unsqueeze(0), orig_size
-
-# ── 3. Application Interface
-st.markdown('<div class="main-header"><h1>🔬 VisionOCT Analysis Pro</h1><p>Next-Gen Retinal Lesion Segmentation Engine</p></div>', unsafe_allow_html=True)
-
-# Tabs for Organization
-tab1, tab2 = st.tabs(["🚀 Analysis Dashboard", "📖 Documentation"])
-
-with tab1:
-    with st.sidebar:
-        st.header("📋 Legend & Settings")
-        st.markdown("---")
-        for name, (r, g, b) in LABEL_MAP:
-            if name == "Background": continue
-            st.markdown(f'<div style="display:flex; align-items:center; margin-bottom:5px;">'
-                        f'<div style="width:20px; height:20px; background-color:rgb({r},{g},{b}); border-radius:4px; margin-right:10px;"></div>'
-                        f'<b>{name}</b></div>', unsafe_allow_html=True)
-        st.sidebar.divider()
-        st.info("System Status: **Optimal** 🟢")
-
-    # Main Layout
-    col_up, col_info = st.columns([3, 1])
-    with col_up:
-        uploaded_file = st.file_uploader("Drop OCT Scan Here", type=["jpg", "png", "jpeg"])
-
-    if uploaded_file:
-        input_image = Image.open(uploaded_file).convert("RGB")
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("### 🖼️ Input Scan")
-            st.image(input_image, use_container_width=True)
-            
-        if st.button("Analyze Scan ✨"):
-            with st.spinner("Decoding Retinal Layers..."):
-                MODEL = load_model()
-                tensor, orig_size = preprocess(input_image)
-                time.sleep(1) # Visual effect
-                
-                with torch.no_grad():
-                    logits = MODEL(tensor)
-                    idx_mask = logits.argmax(dim=1).squeeze(0).cpu().numpy()
-
-                mask_rgb = Image.fromarray(CLASS_COLORS[idx_mask].astype(np.uint8)).resize(orig_size, Image.NEAREST)
-                
-                with c2:
-                    st.markdown("### 🎭 Generated Mask")
-                    st.image(mask_rgb, use_container_width=True)
-
-                # Quantitative Results
-                st.divider()
-                st.subheader("📊 Lesion Quantification (Pixel Count)")
-                m_cols = st.columns(4)
-                found = False
-                idx = 0
-                for i, (name, _) in enumerate(LABEL_MAP):
-                    if name == "Background": continue
-                    px_count = int((idx_mask == i).sum())
-                    if px_count > 0:
-                        found = True
-                        with m_cols[idx % 4]:
-                            st.markdown(f'<div class="metric-card"><h4>{name}</h4><h2>{px_count:,}</h2><p>Pixels</p></div>', unsafe_allow_html=True)
-                        idx += 1
-                if not found:
-                    st.success("✅ Analysis Complete: No significant lesions detected.")
-
-with tab2:
-    st.header("About the Model")
-    st.write("This system utilizes a **U-Net** architecture with an **EfficientNet-B0** backbone.")
+def analyze_scan(img, model):
+    """Performs segmentation and returns mask + fluid metrics."""
+    orig_size = img.size
+    resized = img.resize((256, 256), Image.BILINEAR)
+    # Normalization (must match training)
+    tensor = TF.normalize(TF.to_tensor(resized), [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]).unsqueeze(0)
     
-    st.markdown("""
-    - **Dataset**: Trained on multicenter OCT scans (AMD/DME).
-    - **Mean Dice Score**: 64% 
-    - **Classes**: 8 distinct retinal lesion types.
-    """)
+    with torch.no_grad():
+        mask_idx = model(tensor).argmax(dim=1).squeeze(0).cpu().numpy()
+    
+    # Calculate Fluid Index: $$\text{Fluid Index} = \frac{\sum \text{Fluid Pixels}}{\text{Total Pixels}} \times 100$$
+    stats = {name: int((mask_idx == i).sum()) for i, (name, _) in enumerate(LABEL_MAP)}
+    fluid_px = sum(stats[cls] for cls in FLUID_CLASSES)
+    fluid_idx = (fluid_px / (256 * 256)) * 100
+    
+    mask_rgb = Image.fromarray(CLASS_COLORS[mask_idx].astype(np.uint8)).resize(orig_size, Image.NEAREST)
+    return mask_rgb, stats, fluid_idx
 
-st.markdown("<br><center style='color:#64748b;'>© 2026 VisionOCT AI Development Team</center>", unsafe_allow_html=True)
+# ── 4. Grok AI Clinical Insight Tool
+def get_grok_report(df_summary, api_key):
+    """Uses Grok Cloud to generate a clinical interpretation of the data."""
+    client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
+    
+    prompt = f"""
+    You are Grok, an expert Retinal Specialist AI. Analyze this sequence of OCT segmentation data:
+    {df_summary.to_string(index=False)}
+    
+    1. Summarize the progression of fluid/lesions. 
+    2. Determine if the patient is responding to treatment (improving) or worsening.
+    3. Provide 3 specific clinical recommendations.
+    Keep it professional and concise.
+    """
+    
+    response = client.chat.completions.create(
+        model="grok-beta",
+        messages=[
+            {"role": "system", "content": "You are a clinical assistant for ophthalmologists."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response.choices[0].message.content
+
+# ── 5. Main UI Layout
+st.markdown('<div class="main-header"><h1>🏥 VisionOCT Analytics Suite</h1><p>Advanced Multi-Scan Segmentation & Grok AI Progression Tracking</p></div>', unsafe_allow_html=True)
+
+# Sidebar for Setup
+with st.sidebar:
+    st.header("⚙️ Configuration")
+    grok_key = st.text_input("Grok Cloud API Key", type="password", help="Get this from console.x.ai")
+    st.divider()
+    st.subheader("🎨 Color Legend")
+    for name, (r, g, b) in LABEL_MAP:
+        if name == "Background": continue
+        st.markdown(f'<div style="display:flex;align-items:center;margin-bottom:4px;"><div style="width:12px;height:12px;background:rgb({r},{g},{b});border-radius:3px;margin-right:8px;"></div><small>{name}</small></div>', unsafe_allow_html=True)
+
+# Main Multi-Image Uploader
+uploaded_files = st.file_uploader("Upload OCT scans to analyze progression", type=["jpg", "png", "jpeg"], accept_multiple_files=True)
+
+if uploaded_files:
+    MODEL = load_model()
+    clinical_history = []
+    
+    # Batch Processing with Progress Bar
+    with st.status("Analyzing Clinical Sequence...", expanded=True) as status:
+        for f in uploaded_files:
+            img = Image.open(f).convert("RGB")
+            mask, stats, f_idx = analyze_scan(img, MODEL)
+            clinical_history.append({
+                "Filename": f.name, "Original": img, "Mask": mask,
+                "Stats": stats, "Fluid %": round(f_idx, 2)
+            })
+        status.update(label="Analysis Complete!", state="complete", expanded=False)
+
+    df = pd.DataFrame(clinical_history)
+    
+    # ── Dashboard Tabs
+    tab1, tab2, tab3 = st.tabs(["📊 Progression Insights", "🖼️ Scan Gallery", "🤖 AI Clinical Report"])
+    
+    with tab1:
+        st.subheader("📈 Total Fluid Concentration Trend")
+        # Plotly progression chart
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df['Filename'], y=df['Fluid %'], mode='lines+markers', line=dict(color='#3b82f6', width=4), marker=dict(size=12)))
+        fig.update_layout(xaxis_title="Scan Filename", yaxis_title="Fluid Index (%)", margin=dict(l=0, r=0, t=30, b=0))
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Progression Logic
+        if len(df) > 1:
+            change = df['Fluid %'].iloc[-1] - df['Fluid %'].iloc[0]
+            c1, c2, c3 = st.columns(3)
+            with c1: st.metric("Overall Progression", f"{change:+.2f}%", delta=change, delta_color="inverse")
+            with c2: st.markdown(f'<div class="metric-card"><h4>Condition</h4><h3>{"Improving ✅" if change < 0 else "Worsening ⚠️"}</h3></div>', unsafe_allow_html=True)
+            with c3: st.markdown(f'<div class="metric-card"><h4>Baseline vs Latest</h4><p>{df["Fluid %"].iloc[0]}% → {df["Fluid %"].iloc[-1]}%</p></div>', unsafe_allow_html=True)
+
+    with tab2:
+        st.subheader("Side-by-Side Detail View")
+        for data in clinical_history:
+            with st.expander(f"🔍 Details: {data['Filename']}"):
+                col_a, col_b, col_c = st.columns([2, 2, 1.2])
+                with col_a: st.image(data['Original'], caption="Input Scan", use_container_width=True)
+                with col_b: st.image(data['Mask'], caption="AI Mask", use_container_width=True)
+                with col_c:
+                    st.write("**Quantification**")
+                    st.write(f"Fluid Index: `{data['Fluid %']}%`")
+                    st.divider()
+                    for cls in FLUID_CLASSES:
+                        if data['Stats'][cls] > 0:
+                            st.write(f"• {cls}: **{data['Stats'][cls]:,} px**")
+
+    with tab3:
+        st.subheader("🤖 Grok-Powered Clinical Summary")
+        if not grok_key:
+            st.warning("Please enter your Grok API Key in the sidebar to generate AI insights.")
+        else:
+            if st.button("Generate Intelligence Report", type="primary"):
+                with st.spinner("Grok is reviewing clinical findings..."):
+                    try:
+                        report = get_grok_report(df[["Filename", "Fluid %"] + FLUID_CLASSES], grok_key)
+                        st.markdown(f'<div class="report-box">{report}</div>', unsafe_allow_html=True)
+                    except Exception as e:
+                        st.error(f"Grok API Error: {e}")
+
+else:
+    st.info("👋 Welcome to VisionOCT Pro. Upload a sequence of OCT scans to begin clinical analysis.")
+
+st.markdown("<br><hr><center style='color:#64748b;'>VisionOCT Pro Suite | Developed by Abdo Lasheen | 2026</center>", unsafe_allow_html=True)
