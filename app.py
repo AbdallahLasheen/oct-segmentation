@@ -190,8 +190,10 @@ if uploaded_files:
         if st.button("Generate Intelligence Report", type="primary"):
             with st.spinner("Grok is reviewing clinical findings..."):
                 try:
-                    # We only send the data; the function uses the secure client automatically
-                    report = get_grok_report(df_data) 
+                    # Use 'df' instead of 'df_data'
+                    # We also select only the necessary columns for the AI to analyze
+                    report = get_grok_report(df[["Filename", "Fluid %"] + FLUID_CLASSES]) 
+                    
                     st.markdown(f'<div class="report-box">{report}</div>', unsafe_allow_html=True)
                 except Exception as e:
                     st.error(f"Grok API Error: {e}")
