@@ -1,7 +1,8 @@
-torch==2.1.0
-torchvision==0.16.0
+torch
+torchvision
 segmentation-models-pytorch==0.3.3
 gradio==4.44.0
 Pillow==10.4.0
-numpy==1.26.4
+numpy
 huggingface_hub==0.24.0
+opencv-python-headless
