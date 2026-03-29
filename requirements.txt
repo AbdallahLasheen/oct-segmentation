@@ -1,8 +1,8 @@
+streamlit
 torch
 torchvision
 segmentation-models-pytorch
-gradio
 Pillow
 numpy
-huggingface_hub
 opencv-python-headless
+gradio
