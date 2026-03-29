@@ -1,8 +1,18 @@
+# Web & UI Frameworks
 streamlit
+gradio
+
+# Deep Learning & Computer Vision
 torch
 torchvision
 segmentation-models-pytorch
 Pillow
-numpy
 opencv-python-headless
-gradio
+
+# Data Processing & Visualization
+numpy
+pandas
+plotly
+
+# AI Integration (Grok Cloud)
+openai
