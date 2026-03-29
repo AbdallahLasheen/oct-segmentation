@@ -1,12 +1,11 @@
-import gradio as gr
+import streamlit as st
 import numpy as np
 import torch
 import segmentation_models_pytorch as smp
 import torchvision.transforms.functional as TF
 from PIL import Image
-from huggingface_hub import hf_hub_download
 
-# ── Label Map (must match training exactly)
+# ── 1. Configuration & Constants (Matching your training exactly)
 LABEL_MAP = [
     ("Background",        (0,   0,   0  )),
     ("Drosenoid PED",     (248, 231, 180)),
@@ -17,186 +16,127 @@ LABEL_MAP = [
     ("SHRM",              (204, 153, 51 )),
     ("SRF",               (42,  125, 209)),
 ]
-CLASS_NAMES  = [n for n, _ in LABEL_MAP]
+
 CLASS_COLORS = np.array([c for _, c in LABEL_MAP], dtype=np.uint8)
 NUM_CLASSES  = len(LABEL_MAP)
 IMG_SIZE     = 256
 MEAN         = [0.485, 0.456, 0.406]
 STD          = [0.229, 0.224, 0.225]
-DEVICE       = "cpu"   # HF Spaces free tier uses CPU
+DEVICE       = "cpu" 
 
-
+# ── 2. Helper Functions
 def index_to_rgb(idx_mask: np.ndarray) -> np.ndarray:
+    """Converts a class-index mask to an RGB image."""
     return CLASS_COLORS[idx_mask]
 
-
-# ── Load model once at startup
+@st.cache_resource # Caches the model in memory to prevent re-loading on every interaction
 def load_model():
+    """Initializes the U-Net with EfficientNet-B0 backbone and loads weights."""
     model = smp.Unet(
         encoder_name    = "efficientnet-b0",
         encoder_weights = None,
         in_channels     = 3,
         classes         = NUM_CLASSES,
     )
-    ckpt = torch.load("unet_oct_best_v2.pth",
-                      map_location=DEVICE, weights_only=False)
+    # Ensure 'unet_oct_best_v2.pth' is in the same folder on GitHub
+    ckpt = torch.load("unet_oct_best_v2.pth", map_location=DEVICE, weights_only=False)
     model.load_state_dict(ckpt["weights"])
     model.eval()
     return model
 
-MODEL = load_model()
-
-
 def preprocess(image: Image.Image):
-    orig_size = image.size                                    # (W, H)
+    """Resizes and normalizes the input image for the model."""
+    orig_size = image.size                                    
     resized   = image.resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR)
     tensor    = TF.normalize(TF.to_tensor(resized), MEAN, STD)
-    return tensor.unsqueeze(0), orig_size                    # [1,3,256,256]
+    return tensor.unsqueeze(0), orig_size                    
 
+# ── 3. Streamlit UI Layout
+st.set_page_config(page_title="OCT Segmentation AI", layout="wide")
 
-def predict_single(image: Image.Image):
-    """Run inference on one PIL Image. Returns (mask_rgb PIL, areas dict)."""
-    tensor, orig_size = preprocess(image)
-    with torch.no_grad():
-        logits   = MODEL(tensor)
-        idx_mask = logits.argmax(dim=1).squeeze(0).cpu().numpy()
+# Custom CSS for styling
+st.markdown("""
+    <style>
+    .main { text-align: center; }
+    .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #007bff; color: white; }
+    .reportview-container .main .block-container { padding-top: 2rem; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    mask_rgb = Image.fromarray(
-        index_to_rgb(idx_mask).astype(np.uint8)
-    ).resize(orig_size, Image.NEAREST)
+st.title("🔬 OCT Retinal Lesion Segmentation")
+st.markdown("AI-powered segmentation of **AMD & DME** lesions from OCT scans using **U-Net + EfficientNet-B0**.")
 
-    # Compute lesion areas (pixels per class, excluding background)
-    areas = {}
-    for i, (name, _) in enumerate(LABEL_MAP):
-        if name == "Background":
-            continue
-        count = int((idx_mask == i).sum())
-        if count > 0:
-            areas[name] = count
-
-    return mask_rgb, areas
-
-
-def build_legend() -> str:
-    lines = ["**Legend**\n"]
+# ── 4. Sidebar Legend
+with st.sidebar:
+    st.header("🎨 Color Legend")
+    st.markdown("Class colors used in the mask:")
     for name, (r, g, b) in LABEL_MAP:
-        if name == "Background":
-            continue
+        if name == "Background": continue
         hex_color = f"#{r:02x}{g:02x}{b:02x}"
-        lines.append(f"🟦 `{hex_color}` &nbsp; **{name}**")
-    return "\n\n".join(lines)
+        st.markdown(f'<p><span style="color:{hex_color}; font-size:20px;">■</span> <b>{name}</b></p>', unsafe_allow_html=True)
+    
+    st.divider()
+    st.info("Note: For research use only. Not a clinical diagnostic tool.")
 
+# ── 5. Main Logic: Upload and Prediction
+MODEL = load_model()
 
-def build_summary(all_areas: list[dict], filenames: list[str]) -> str:
-    if not all_areas:
-        return ""
-    lines = ["## 📊 Lesion Summary\n"]
-    for fname, areas in zip(filenames, all_areas):
-        lines.append(f"### 🖼️ {fname}")
-        if not areas:
-            lines.append("_No lesions detected — retina appears normal._\n")
-        else:
-            for name, px in sorted(areas.items(), key=lambda x: -x[1]):
-                bar_len = min(30, px // 500 + 1)
-                bar     = "█" * bar_len
-                lines.append(f"- **{name}**: {px:,} px &nbsp; `{bar}`")
-        lines.append("")
-    return "\n".join(lines)
+uploaded_file = st.file_uploader("Upload OCT Scan (JPG, PNG, JPEG)", type=["jpg", "png", "jpeg"])
 
+if uploaded_file:
+    # Split screen into two columns
+    col1, col2 = st.columns(2)
+    
+    # Load and display original image
+    input_image = Image.open(uploaded_file).convert("RGB")
+    
+    with col1:
+        st.subheader("🖼️ Original OCT Scan")
+        st.image(input_image, use_container_width=True)
 
-# ── Main inference function called by Gradio
-def run_segmentation(images):
-    if images is None or len(images) == 0:
-        return [], [], "⚠️ Please upload at least one image."
+    # Prediction Trigger
+    if st.button("▶ Run Segmentation"):
+        with st.spinner("Analyzing scan... Please wait."):
+            # Preprocess
+            tensor, orig_size = preprocess(input_image)
+            
+            # Inference
+            with torch.no_grad():
+                logits   = MODEL(tensor)
+                idx_mask = logits.argmax(dim=1).squeeze(0).cpu().numpy()
 
-    result_pairs = []   # list of [original, mask] for the gallery
-    all_areas    = []
-    filenames    = []
+            # Post-process mask
+            mask_rgb_array = index_to_rgb(idx_mask).astype(np.uint8)
+            mask_pil = Image.fromarray(mask_rgb_array).resize(orig_size, Image.NEAREST)
+            
+            with col2:
+                st.subheader("🎭 Segmentation Mask")
+                st.image(mask_pil, use_container_width=True)
 
-    for img in images:
-        pil_img  = Image.fromarray(img).convert("RGB")
-        mask_pil, areas = predict_single(pil_img)
-        result_pairs.append(pil_img)
-        result_pairs.append(mask_pil)
-        all_areas.append(areas)
-        filenames.append("OCT Scan")   # Gradio doesn't expose filenames here
+            # ── 6. Quantitative Summary
+            st.divider()
+            st.subheader("📊 Lesion Area Analysis")
+            
+            has_lesions = False
+            # Use columns for metrics to look professional
+            metric_cols = st.columns(3)
+            col_idx = 0
+            
+            for i, (name, _) in enumerate(LABEL_MAP):
+                if name == "Background": continue
+                count = int((idx_mask == i).sum())
+                
+                if count > 0:
+                    has_lesions = True
+                    with metric_cols[col_idx % 3]:
+                        st.metric(label=name, value=f"{count:,} px")
+                    col_idx += 1
+            
+            if not has_lesions:
+                st.success("✅ No lesions detected — The retina appears normal.")
 
-    summary = build_summary(all_areas, filenames)
-    return result_pairs, summary
+else:
+    st.warning("Please upload an image to begin.")
 
-
-# ── Gradio UI
-LEGEND_MD = build_legend()
-
-with gr.Blocks(
-    title="OCT Retinal Lesion Segmentation",
-    theme=gr.themes.Soft(primary_hue="blue", neutral_hue="slate"),
-    css="""
-        #header { text-align: center; padding: 1.5rem 0 0.5rem; }
-        #header h1 { font-size: 2rem; font-weight: 700; }
-        #header p  { color: #64748b; font-size: 1rem; margin-top: 0.25rem; }
-        .gallery-item img { border-radius: 8px; }
-        #footer { text-align: center; color: #94a3b8;
-                  font-size: 0.8rem; padding: 1rem 0; }
-    """,
-) as demo:
-
-    # ── Header
-    gr.HTML("""
-        <div id="header">
-          <h1>🔬 OCT Retinal Lesion Segmentation</h1>
-          <p>AI-powered segmentation of AMD &amp; DME lesions from OCT scans
-             &nbsp;·&nbsp; U-Net + EfficientNet-B0 &nbsp;·&nbsp; 8 classes</p>
-        </div>
-    """)
-
-    with gr.Row():
-        # Left column — upload + controls
-        with gr.Column(scale=1):
-            image_input = gr.Image(
-                type        = "numpy",
-                label       = "Upload OCT Scan(s)",
-                sources     = ["upload"],
-            )
-            run_btn = gr.Button(
-                "▶  Run Segmentation",
-                variant = "primary",
-                size    = "lg",
-            )
-            gr.Markdown(LEGEND_MD)
-
-        # Right column — results
-        with gr.Column(scale=2):
-            gallery = gr.Gallery(
-                label        = "Results  (original → mask)",
-                columns      = 2,
-                object_fit   = "contain",
-                height       = 500,
-                show_label   = True,
-            )
-            summary_md = gr.Markdown(label="Lesion Summary")
-
-    # ── Examples
-    gr.Examples(
-        examples    = [],          # add sample image paths here if available
-        inputs      = [image_input],
-        label       = "Example Images",
-    )
-
-    # ── Footer
-    gr.HTML("""
-        <div id="footer">
-            Trained on AMD &amp; DME OCT datasets &nbsp;·&nbsp;
-            Mean Dice 64% &nbsp;·&nbsp;
-            For research use only — not a clinical diagnostic tool.
-        </div>
-    """)
-
-    # ── Event
-    run_btn.click(
-        fn      = run_segmentation,
-        inputs  = [image_input],
-        outputs = [gallery, summary_md],
-    )
-
-demo.launch()
+# Footer
+st.markdown("<br><hr><center>Developed by Abdallah Lasheen | OCT-Segmentation v2.0</center>", unsafe_allow_html=True)
