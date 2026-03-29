@@ -98,7 +98,9 @@ def analyze_scan(img, model):
 # ── 4. Grok AI Clinical Insight Tool
 def get_grok_report(df_summary, api_key):
     """Uses Grok Cloud to generate a clinical interpretation of the data."""
-    client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
+    client = OpenAI(
+    api_key = st.secrets["GROK_API_KEY"], 
+    base_url = "https://api.x.ai/v1")
     
     prompt = f"""
     You are Grok, an expert Retinal Specialist AI. Analyze this sequence of OCT segmentation data:
@@ -124,9 +126,6 @@ st.markdown('<div class="main-header"><h1>🏥 VisionOCT Analytics Suite</h1><p>
 
 # Sidebar for Setup
 with st.sidebar:
-    st.header("⚙️ Configuration")
-    grok_key = st.text_input("Grok Cloud API Key", type="password", help="Get this from console.x.ai")
-    st.divider()
     st.subheader("🎨 Color Legend")
     for name, (r, g, b) in LABEL_MAP:
         if name == "Background": continue
@@ -188,16 +187,14 @@ if uploaded_files:
 
     with tab3:
         st.subheader("🤖 Grok-Powered Clinical Summary")
-        if not grok_key:
-            st.warning("Please enter your Grok API Key in the sidebar to generate AI insights.")
-        else:
-            if st.button("Generate Intelligence Report", type="primary"):
-                with st.spinner("Grok is reviewing clinical findings..."):
-                    try:
-                        report = get_grok_report(df[["Filename", "Fluid %"] + FLUID_CLASSES], grok_key)
-                        st.markdown(f'<div class="report-box">{report}</div>', unsafe_allow_html=True)
-                    except Exception as e:
-                        st.error(f"Grok API Error: {e}")
+        if st.button("Generate Intelligence Report", type="primary"):
+            with st.spinner("Grok is reviewing clinical findings..."):
+                try:
+                    # We only send the data; the function uses the secure client automatically
+                    report = get_grok_report(df_data) 
+                    st.markdown(f'<div class="report-box">{report}</div>', unsafe_allow_html=True)
+                except Exception as e:
+                    st.error(f"Grok API Error: {e}")
 
 else:
     st.info("👋 Welcome to VisionOCT Pro. Upload a sequence of OCT scans to begin clinical analysis.")
