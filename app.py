@@ -129,7 +129,7 @@ def create_medical_pdf(p_info, dr_name, report_text):
     pdf.cell(0, 10, "ALAMEIN INTERNATIONAL UNIVERSITY - AIU", ln=True)
     pdf.set_font("Arial", size=9)
     pdf.set_x(40)
-    pdf.cell(0, 5, "VisionOCT Advanced AI Diagnostic Laboratory", ln=True)
+    pdf.cell(0, 5, "Center for Precision Ophthalmic Intelligence", ln=True)
     pdf.ln(10)
     
     # Patient Data Section (Compact)
