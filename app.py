@@ -89,15 +89,15 @@ html, body, [class*="css"] {
     background: #2563EB;
     border-radius: 9px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 25px;
+    font-size: 30px;
 }
 .topbar-title {
-    font-size: 35px; font-weight: 700;
+    font-size: 30px; font-weight: 700;
     color: #FFFFFF; letter-spacing: -0.5px;
     margin: 0;
 }
 .topbar-sub {
-    font-size: 22px; color: #94A3B8; margin: 2px 0 0 0;
+    font-size: 18px; color: #94A3B8; margin: 2px 0 0 0;
     letter-spacing: 0.1px;
 }
 .topbar-badges {
