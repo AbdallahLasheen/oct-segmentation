@@ -555,7 +555,7 @@ def get_groq_ai_response(prompt):
     )
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
-        max_tokens=1300,
+        max_tokens=1500,
         messages=[
             {"role": "system", "content": "You are a senior retinal specialist assistant. Write a detailed but concise clinical report that fits in ONE page. Do NOT include Patient ID, Date, or Modality fields — these are already in the header. Start directly with the clinical summary. Use clear sections: Clinical Summary, Key Findings, Impression, and Recommendations."},
             {"role": "user",   "content": prompt}
