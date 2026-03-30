@@ -928,103 +928,222 @@ if uploaded_files:
 
             with col_prnt:
                 if st.button("🖨 Print Preview"):
-                    # Convert **bold** markdown to <b> tags
                     import re
-                    report_html = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', st.session_state["report_text"])
-                    # Convert newlines to <br>
+                    # Convert markdown to HTML
+                    report_html = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', st.session_state["report_text"])
+                    report_html = re.sub(r'\*(.*?)\*', r'<em>\1</em>', report_html)
+                    report_html = report_html.replace('\n\n', '</p><p style="margin:10px 0;font-size:14px;color:#1a1a1a;line-height:1.85;">')
                     report_html = report_html.replace('\n', '<br>')
 
-                    st.markdown(f"""
-<div style="
-    background:#ffffff;
-    border:1px solid #d1d5db;
-    border-radius:12px;
-    padding:48px 52px;
-    font-family:'Georgia',serif;
-    max-width:800px;
-    margin:0 auto;
-">
-    <!-- HEADER -->
-    <div style="text-align:center;border-bottom:2px solid #1e3a5f;padding-bottom:20px;margin-bottom:24px">
-        <div style="font-size:20px;font-weight:700;color:#0f172a;letter-spacing:-0.3px">
-            Medical Assessment Report
-        </div>
-        <div style="font-size:13px;color:#1e3a5f;font-weight:600;margin-top:4px">
-            Alamein International University
-        </div>
-        <div style="font-size:11px;color:#475569;margin-top:2px">
-            Center for Precision Ophthalmic Intelligence
-        </div>
-    </div>
+                    html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  body {{ background: #f0f4f8; font-family: Arial, sans-serif; padding: 20px; }}
+  .page {{
+    background: #ffffff;
+    max-width: 780px;
+    margin: 0 auto;
+    border: 1px solid #c8d6e5;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }}
+  .hospital-header {{
+    background: #0a2744;
+    color: white;
+    padding: 18px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }}
+  .hospital-name {{
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #ffffff;
+  }}
+  .hospital-sub {{
+    font-size: 11px;
+    color: #93c5fd;
+    margin-top: 2px;
+  }}
+  .report-badge {{
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 5px 14px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #bfdbfe;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }}
+  .title-bar {{
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 14px 30px;
+    text-align: center;
+  }}
+  .report-title {{
+    font-size: 17px;
+    font-weight: 700;
+    color: #0a2744;
+    letter-spacing: 0.2px;
+  }}
+  .report-subtitle {{
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 3px;
+  }}
+  .info-grid {{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 2px solid #e2e8f0;
+  }}
+  .info-cell {{
+    padding: 10px 20px;
+    border-right: 1px solid #e2e8f0;
+  }}
+  .info-cell:last-child {{ border-right: none; }}
+  .info-cell:nth-child(4),
+  .info-cell:nth-child(5),
+  .info-cell:nth-child(6) {{ background: #f8fafc; }}
+  .info-label {{
+    font-size: 9px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }}
+  .info-value {{
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+  }}
+  .section-bar {{
+    background: #0a2744;
+    color: white;
+    padding: 7px 30px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+  }}
+  .findings-body {{
+    padding: 20px 30px;
+    min-height: 200px;
+  }}
+  .findings-body p {{
+    font-size: 14px;
+    color: #1a1a1a;
+    line-height: 1.85;
+    margin: 10px 0;
+  }}
+  .findings-body strong {{ color: #0a2744; font-weight: 700; }}
+  .stamp-row {{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 16px 30px;
+    border-top: 2px solid #e2e8f0;
+    background: #f8fafc;
+  }}
+  .stamp-left {{ font-size: 11px; color: #64748b; line-height: 1.7; }}
+  .stamp-right {{ text-align: right; }}
+  .sig-line {{
+    width: 180px;
+    border-top: 1px solid #334155;
+    margin-bottom: 4px;
+    margin-left: auto;
+  }}
+  .sig-name {{ font-size: 13px; font-weight: 700; color: #0a2744; }}
+  .sig-title {{ font-size: 10px; color: #64748b; }}
+  .footer {{
+    background: #0a2744;
+    color: #93c5fd;
+    font-size: 9px;
+    text-align: center;
+    padding: 6px;
+    letter-spacing: 0.5px;
+  }}
+</style>
+</head>
+<body>
+<div class="page">
 
-    <!-- META ROW -->
-    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-        <tr>
-            <td style="padding:6px 10px;background:#f1f5f9;border:1px solid #e2e8f0;width:50%">
-                <span style="font-size:11px;color:#64748b;font-family:sans-serif">PHYSICIAN</span><br>
-                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">Dr. {dr_input}</span>
-            </td>
-            <td style="padding:6px 10px;background:#f1f5f9;border:1px solid #e2e8f0;width:50%">
-                <span style="font-size:11px;color:#64748b;font-family:sans-serif">DATE</span><br>
-                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">{time.strftime("%B %d, %Y")}</span>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding:6px 10px;border:1px solid #e2e8f0">
-                <span style="font-size:11px;color:#64748b;font-family:sans-serif">PATIENT</span><br>
-                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">{p_name}</span>
-            </td>
-            <td style="padding:6px 10px;border:1px solid #e2e8f0">
-                <span style="font-size:11px;color:#64748b;font-family:sans-serif">MRN / ID</span><br>
-                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">{p_id}</span>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding:6px 10px;background:#f1f5f9;border:1px solid #e2e8f0">
-                <span style="font-size:11px;color:#64748b;font-family:sans-serif">AGE</span><br>
-                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">{p_age} years</span>
-            </td>
-            <td style="padding:6px 10px;background:#f1f5f9;border:1px solid #e2e8f0">
-                <span style="font-size:11px;color:#64748b;font-family:sans-serif">GENDER</span><br>
-                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">{p_gender}</span>
-            </td>
-        </tr>
-    </table>
-
-    <!-- FINDINGS HEADER -->
-    <div style="
-        background:#1e3a5f;color:#ffffff;
-        padding:8px 14px;border-radius:6px;
-        font-size:12px;font-weight:700;
-        letter-spacing:0.8px;text-transform:uppercase;
-        font-family:sans-serif;margin-bottom:16px
-    ">
-        Clinical Findings &amp; AI Analysis
+  <div class="hospital-header">
+    <div>
+      <div class="hospital-name">ALAMEIN INTERNATIONAL UNIVERSITY — AIU</div>
+      <div class="hospital-sub">Center for Precision Ophthalmic Intelligence &nbsp;·&nbsp; VisionOCT Pro Suite</div>
     </div>
+    <div class="report-badge">Ophthalmology Report</div>
+  </div>
 
-    <!-- REPORT BODY -->
-    <div style="
-        font-size:13.5px;
-        line-height:1.9;
-        color:#111827;
-        font-family:'Georgia',serif;
-    ">
-        {report_html}
-    </div>
+  <div class="title-bar">
+    <div class="report-title">OCT RETINAL ANALYSIS — CLINICAL REPORT</div>
+    <div class="report-subtitle">AI-Assisted Diagnostic Assessment | Confidential Medical Document</div>
+  </div>
 
-    <!-- SIGNATURE -->
-    <div style="margin-top:40px;padding-top:16px;border-top:1px solid #cbd5e1;text-align:right">
-        <div style="font-size:12px;color:#475569;font-family:sans-serif">Digitally Verified by</div>
-        <div style="font-size:15px;font-weight:700;color:#0f172a;font-family:'Georgia',serif;margin-top:2px">
-            Dr. {dr_input}
-        </div>
-        <div style="font-size:11px;color:#64748b;font-family:sans-serif">
-            Consultant Specialist | AIU Clinical Diagnostic Suite
-        </div>
+  <div class="info-grid">
+    <div class="info-cell">
+      <div class="info-label">Patient Name</div>
+      <div class="info-value">{p_name if p_name else '—'}</div>
     </div>
+    <div class="info-cell">
+      <div class="info-label">MRN / ID</div>
+      <div class="info-value">{p_id if p_id else '—'}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Report Date</div>
+      <div class="info-value">{time.strftime("%d %b %Y")}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Age</div>
+      <div class="info-value">{p_age} yrs</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Gender</div>
+      <div class="info-value">{p_gender}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Modality</div>
+      <div class="info-value">OCT B-Scan</div>
+    </div>
+  </div>
+
+  <div class="section-bar">Clinical Findings &amp; AI Analysis</div>
+
+  <div class="findings-body">
+    <p style="margin:10px 0;font-size:14px;color:#1a1a1a;line-height:1.85;">{report_html}</p>
+  </div>
+
+  <div class="stamp-row">
+    <div class="stamp-left">
+      <strong style="color:#0a2744">Referring Physician:</strong> Dr. {dr_input}<br>
+      Consultant Specialist | AIU Clinical Diagnostic Suite<br>
+      Report generated: {time.strftime("%d %B %Y, %H:%M")}
+    </div>
+    <div class="stamp-right">
+      <div class="sig-line"></div>
+      <div class="sig-name">Dr. {dr_input}</div>
+      <div class="sig-title">Digitally Verified Signature</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    ALAMEIN INTERNATIONAL UNIVERSITY &nbsp;·&nbsp; VisionOCT PRO SUITE &nbsp;·&nbsp; DEVELOPED BY ABDO LASHEEN &nbsp;·&nbsp; 2026 &nbsp;·&nbsp; CONFIDENTIAL
+  </div>
+
 </div>
-""", unsafe_allow_html=True)
-                    st.components.v1.html("<script>window.print();</script>", height=0)
+<script>setTimeout(function(){{ window.print(); }}, 400);</script>
+</body>
+</html>
+"""
+                    st.components.v1.html(html_content, height=900, scrolling=True)
 
 else:
     # Welcome state
