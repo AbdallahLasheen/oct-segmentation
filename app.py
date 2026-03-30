@@ -92,12 +92,12 @@ html, body, [class*="css"] {
     font-size: 18px;
 }
 .topbar-title {
-    font-size: 20px; font-weight: 700;
+    font-size: 40px; font-weight: 700;
     color: #FFFFFF; letter-spacing: -0.5px;
     margin: 0;
 }
 .topbar-sub {
-    font-size: 12px; color: #94A3B8; margin: 2px 0 0 0;
+    font-size: 22px; color: #94A3B8; margin: 2px 0 0 0;
     letter-spacing: 0.1px;
 }
 .topbar-badges {
