@@ -85,11 +85,11 @@ html, body, [class*="css"] {
     gap: 12px;
 }
 .topbar-icon {
-    width: 36px; height: 36px;
+    width: 48px; height: 48px;
     background: #2563EB;
-    border-radius: 9px;
+    border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 30px;
+    font-size: 35px;
 }
 .topbar-title {
     font-size: 30px; font-weight: 700;
