@@ -89,10 +89,10 @@ html, body, [class*="css"] {
     background: #2563EB;
     border-radius: 9px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
+    font-size: 25px;
 }
 .topbar-title {
-    font-size: 40px; font-weight: 700;
+    font-size: 35px; font-weight: 700;
     color: #FFFFFF; letter-spacing: -0.5px;
     margin: 0;
 }
