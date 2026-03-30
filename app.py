@@ -928,16 +928,102 @@ if uploaded_files:
 
             with col_prnt:
                 if st.button("🖨 Print Preview"):
-                    st.markdown(
-                        f'<div style="background:#fff;color:#111;padding:40px;border:1px solid #1E2840;border-radius:10px;font-family:serif">'
-                        f'<h2 style="text-align:center;font-size:18px">Medical Assessment Report</h2>'
-                        f'<h4 style="text-align:center;color:#555;font-size:13px">Alamein International University</h4><hr>'
-                        f'<p style="font-size:12px"><b>Physician:</b> Dr. {dr_input} &nbsp;|&nbsp; <b>Date:</b> {time.strftime("%Y-%m-%d")}</p>'
-                        f'<p style="font-size:12px"><b>Patient:</b> {p_name} &nbsp;|&nbsp; <b>ID:</b> {p_id}</p><hr>'
-                        f'<p style="white-space:pre-wrap;font-size:13px;line-height:1.8">{st.session_state["report_text"]}</p>'
-                        f'<br><p style="text-align:right;font-size:12px"><b>Digitally Verified by Dr. {dr_input}</b></p></div>',
-                        unsafe_allow_html=True
-                    )
+                    # Convert **bold** markdown to <b> tags
+                    import re
+                    report_html = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', st.session_state["report_text"])
+                    # Convert newlines to <br>
+                    report_html = report_html.replace('\n', '<br>')
+
+                    st.markdown(f"""
+<div style="
+    background:#ffffff;
+    border:1px solid #d1d5db;
+    border-radius:12px;
+    padding:48px 52px;
+    font-family:'Georgia',serif;
+    max-width:800px;
+    margin:0 auto;
+">
+    <!-- HEADER -->
+    <div style="text-align:center;border-bottom:2px solid #1e3a5f;padding-bottom:20px;margin-bottom:24px">
+        <div style="font-size:20px;font-weight:700;color:#0f172a;letter-spacing:-0.3px">
+            Medical Assessment Report
+        </div>
+        <div style="font-size:13px;color:#1e3a5f;font-weight:600;margin-top:4px">
+            Alamein International University
+        </div>
+        <div style="font-size:11px;color:#475569;margin-top:2px">
+            Center for Precision Ophthalmic Intelligence
+        </div>
+    </div>
+
+    <!-- META ROW -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+        <tr>
+            <td style="padding:6px 10px;background:#f1f5f9;border:1px solid #e2e8f0;width:50%">
+                <span style="font-size:11px;color:#64748b;font-family:sans-serif">PHYSICIAN</span><br>
+                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">Dr. {dr_input}</span>
+            </td>
+            <td style="padding:6px 10px;background:#f1f5f9;border:1px solid #e2e8f0;width:50%">
+                <span style="font-size:11px;color:#64748b;font-family:sans-serif">DATE</span><br>
+                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">{time.strftime("%B %d, %Y")}</span>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:6px 10px;border:1px solid #e2e8f0">
+                <span style="font-size:11px;color:#64748b;font-family:sans-serif">PATIENT</span><br>
+                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">{p_name}</span>
+            </td>
+            <td style="padding:6px 10px;border:1px solid #e2e8f0">
+                <span style="font-size:11px;color:#64748b;font-family:sans-serif">MRN / ID</span><br>
+                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">{p_id}</span>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:6px 10px;background:#f1f5f9;border:1px solid #e2e8f0">
+                <span style="font-size:11px;color:#64748b;font-family:sans-serif">AGE</span><br>
+                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">{p_age} years</span>
+            </td>
+            <td style="padding:6px 10px;background:#f1f5f9;border:1px solid #e2e8f0">
+                <span style="font-size:11px;color:#64748b;font-family:sans-serif">GENDER</span><br>
+                <span style="font-size:13px;color:#0f172a;font-weight:600;font-family:sans-serif">{p_gender}</span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- FINDINGS HEADER -->
+    <div style="
+        background:#1e3a5f;color:#ffffff;
+        padding:8px 14px;border-radius:6px;
+        font-size:12px;font-weight:700;
+        letter-spacing:0.8px;text-transform:uppercase;
+        font-family:sans-serif;margin-bottom:16px
+    ">
+        Clinical Findings &amp; AI Analysis
+    </div>
+
+    <!-- REPORT BODY -->
+    <div style="
+        font-size:13.5px;
+        line-height:1.9;
+        color:#111827;
+        font-family:'Georgia',serif;
+    ">
+        {report_html}
+    </div>
+
+    <!-- SIGNATURE -->
+    <div style="margin-top:40px;padding-top:16px;border-top:1px solid #cbd5e1;text-align:right">
+        <div style="font-size:12px;color:#475569;font-family:sans-serif">Digitally Verified by</div>
+        <div style="font-size:15px;font-weight:700;color:#0f172a;font-family:'Georgia',serif;margin-top:2px">
+            Dr. {dr_input}
+        </div>
+        <div style="font-size:11px;color:#64748b;font-family:sans-serif">
+            Consultant Specialist | AIU Clinical Diagnostic Suite
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
                     st.components.v1.html("<script>window.print();</script>", height=0)
 
 else:
