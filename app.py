@@ -555,9 +555,9 @@ def get_groq_ai_response(prompt):
     )
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
-        max_tokens=600,
+        max_tokens=900,
         messages=[
-            {"role": "system", "content": "You are a senior retinal specialist assistant. Write a concise clinical report in ONE page maximum. Do NOT include Patient ID, Date, or Modality fields — these are already in the header. Start directly with the clinical summary."},
+            {"role": "system", "content": "You are a senior retinal specialist assistant. Write a detailed but concise clinical report that fits in ONE page. Do NOT include Patient ID, Date, or Modality fields — these are already in the header. Start directly with the clinical summary. Use clear sections: Clinical Summary, Key Findings, Impression, and Recommendations."},
             {"role": "user",   "content": prompt}
         ],
         temperature=0.1
@@ -875,7 +875,7 @@ if uploaded_files:
                 with st.spinner("Synthesizing clinical findings with Llama 3.3..."):
                     cols = ["Filename", "Fluid Index (%)"] + [c for c in FLUID_CLASSES if c in df.columns]
                     st.session_state['report_text'] = get_groq_ai_response(
-                        f"Draft a concise one-page clinical report for this OCT data:\n{df[cols].to_string(index=False)}"
+                    f"Write a detailed one-page clinical OCT report for a retinal specialist. Include: a clinical summary paragraph, bullet-point key findings, clinical impression, and treatment recommendations. Data:\n{df[cols].to_string(index=False)}"
                     )
 
         if 'report_text' in st.session_state:
