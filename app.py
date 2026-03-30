@@ -8,7 +8,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from openai import OpenAI
+from fpdf import FPDF
 import time
+import io
 
 # ── 1. Page Configuration & Professional Branding
 st.set_page_config(
@@ -17,11 +19,10 @@ st.set_page_config(
     page_icon="🏥"
 )
 
-# Custom CSS for a high-end medical software feel
+# Custom Medical-Grade CSS
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     
     .main-header {
@@ -34,12 +35,7 @@ st.markdown("""
         border: 1px solid #334155;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
-    
-    .stTabs [data-baseweb="tab-list"] { 
-        gap: 15px; 
-        background-color: transparent;
-    }
-    
+    .stTabs [data-baseweb="tab-list"] { gap: 15px; }
     .stTabs [data-baseweb="tab"] {
         height: 55px;
         background-color: #f1f5f9;
@@ -49,13 +45,11 @@ st.markdown("""
         color: #475569;
         border: 1px solid #e2e8f0;
     }
-    
     .stTabs [aria-selected="true"] {
         background-color: #3b82f6 !important;
         color: white !important;
         border: 1px solid #3b82f6 !important;
     }
-    
     .metric-card {
         background: #ffffff;
         padding: 1.5rem;
@@ -64,7 +58,6 @@ st.markdown("""
         border: 1px solid #e2e8f0;
         text-align: center;
     }
-    
     .report-box {
         background-color: #ffffff;
         border-left: 8px solid #3b82f6;
@@ -73,17 +66,7 @@ st.markdown("""
         font-size: 1.1rem;
         line-height: 1.8;
         color: #1e293b;
-        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
         border: 1px solid #e2e8f0;
-    }
-    
-    .status-badge {
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        background: #dcfce7;
-        color: #166534;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -95,27 +78,25 @@ LABEL_MAP = [
     ("IRF", (170,223,235)), ("PH", (51,221,255)),
     ("SHRM", (204,153,51)), ("SRF", (42,125,209)),
 ]
-# Critical Fluid classes for medical progression tracking
 FLUID_CLASSES = ["IRF", "SRF", "Drosenoid PED", "Fibrovascular PED"]
 CLASS_COLORS = np.array([c for _, c in LABEL_MAP], dtype=np.uint8)
 
-# ── 3. Optimized AI Segmentation Engine
+# ── 3. Core AI Engine: U-Net Segmentation
 @st.cache_resource
 def load_model():
-    """Loads U-Net model with EfficientNet backbone."""
+    """Initializes the AI model and loads weights."""
     model = smp.Unet(encoder_name="efficientnet-b0", encoder_weights=None, in_channels=3, classes=len(LABEL_MAP))
     try:
-        # Loading using binary mode to prevent EOFError issues
         with open("unet_oct_best_v2.pth", "rb") as f:
             ckpt = torch.load(f, map_location="cpu", weights_only=False)
         model.load_state_dict(ckpt["weights"])
     except Exception as e:
-        st.error(f"Critical Error: Failed to load model weights. Details: {e}")
+        st.error(f"Critical Error: Model not found or corrupted. {e}")
     model.eval()
     return model
 
 def analyze_scan(img, model):
-    """Predicts segmentation and calculates fluid concentration index."""
+    """Predicts segmentation and calculates Fluid Index."""
     orig_size = img.size
     resized = img.resize((256, 256), Image.BILINEAR)
     tensor = TF.normalize(TF.to_tensor(resized), [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]).unsqueeze(0)
@@ -126,164 +107,164 @@ def analyze_scan(img, model):
     stats = {name: int((mask_idx == i).sum()) for i, (name, _) in enumerate(LABEL_MAP)}
     fluid_px = sum(stats[cls] for cls in FLUID_CLASSES)
     
-    # Mathematical Model for Fluid Concentration
+    # Fluid Index Calculation:
     # $$\text{Fluid Index} = \frac{\sum \text{Fluid Pixels}}{\text{Total Pixels}} \times 100$$
     fluid_idx = (fluid_px / (256 * 256)) * 100
     
     mask_rgb = Image.fromarray(CLASS_COLORS[mask_idx].astype(np.uint8)).resize(orig_size, Image.NEAREST)
     return mask_rgb, stats, fluid_idx
 
-# ── 4. Groq-Powered Clinical Intelligence
-def get_groq_intelligence_report(df_summary):
-    """Uses Groq LPU technology for near-instant clinical reasoning."""
-    # Note: Using Groq endpoint with llama-3.3-70b for high clinical accuracy
-    client = OpenAI(
-        api_key=st.secrets["GROK_API_KEY"], 
-        base_url="https://api.groq.com/openai/v1" 
-    )
-    
-    stats_string = df_summary.to_string(index=False)
-    
-    prompt = f"""
-    You are an expert Retinal Image Analysis AI. Review this quantitative OCT progression data:
-    {stats_string}
-    
-    Required Analysis:
-    1. Trend Summary: Describe the change in fluid types (IRF, SRF, etc.) across the temporal sequence.
-    2. Response to Treatment: Based on the Fluid Index trend, is the pathology resolving or progressing?
-    3. Clinical Advice: Provide 3 high-level recommendations for the attending ophthalmologist.
-    
-    Tone: Professional, clinical, and data-driven.
-    """
+# ── 4. Clinical Intelligence & PDF Generator
+def get_groq_report(df_summary):
+    """Generates a clinical summary using Groq LPU (Llama 3.3)."""
+    client = OpenAI(api_key=st.secrets["GROK_API_KEY"], base_url="https://api.groq.com/openai/v1")
+    prompt = f"Analyze this quantitative OCT sequence data and provide a clinical report:\n{df_summary.to_string(index=False)}"
     
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": "You are a board-certified ophthalmic diagnostic assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.1 # Low temperature for medical consistency
+        messages=[{"role": "system", "content": "You are a professional retinal specialist assistant."},
+                  {"role": "user", "content": prompt}],
+        temperature=0.1
     )
     return response.choices[0].message.content
 
-# ── 5. Main Clinical Dashboard
-st.markdown("""
-    <div class="main-header">
-        <h1>🏥 VisionOCT Diagnostic Suite</h1>
-        <p>Advanced Neural Segmentation & Real-Time AI Clinical Reporting</p>
-    </div>
-    """, unsafe_allow_html=True)
+def create_medical_pdf(p_info, dr_name, report_text):
+    """Generates an official PDF with branding, patient info, and signature."""
+    pdf = FPDF()
+    pdf.add_page()
+    try:
+        pdf.image("uni_logo.png", x=10, y=8, w=30)
+    except: pass
+    
+    pdf.set_font("Arial", 'B', 16)
+    pdf.set_x(45)
+    pdf.cell(0, 10, "NILE UNIVERSITY - CLINICAL DIAGNOSTICS", ln=True)
+    pdf.set_font("Arial", size=10)
+    pdf.set_x(45)
+    pdf.cell(0, 5, "VisionOCT Advanced AI Diagnostic Laboratory", ln=True)
+    pdf.ln(15)
+    
+    # Patient Data Section
+    pdf.set_fill_color(245, 247, 250)
+    pdf.set_font("Arial", 'B', 11)
+    pdf.cell(0, 8, " PATIENT DEMOGRAPHICS", ln=True, fill=True)
+    pdf.set_font("Arial", size=10)
+    pdf.cell(95, 7, f" Name: {p_info['name']}", border=1)
+    pdf.cell(95, 7, f" Patient ID: {p_info['id']}", border=1, ln=True)
+    pdf.cell(95, 7, f" Age: {p_info['age']}", border=1)
+    pdf.cell(95, 7, f" Gender: {p_info['gender']}", border=1, ln=True)
+    pdf.ln(10)
+    
+    # Findings Section
+    pdf.set_font("Arial", 'B', 11)
+    pdf.cell(0, 8, " CLINICAL FINDINGS & AI ANALYSIS", ln=True)
+    pdf.set_font("Arial", size=10)
+    pdf.multi_cell(0, 6, report_text.replace("**", ""))
+    
+    # Signature Section
+    pdf.set_y(-35)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(5)
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(0, 5, "Digitally Verified by:", ln=True, align='R')
+    pdf.set_font("Arial", 'I', 11)
+    pdf.cell(0, 6, f"Dr. {dr_name}", ln=True, align='R')
+    pdf.set_font("Arial", size=8)
+    pdf.cell(0, 5, "Consultant Specialist", ln=True, align='R')
+    
+    return pdf.output()
+
+# ── 5. Main Application Logic
+st.markdown('<div class="main-header"><h1>🏥 VisionOCT Diagnostic Suite</h1><p>Clinical Neural Segmentation & LPU-Powered AI Reporting</p></div>', unsafe_allow_html=True)
 
 with st.sidebar:
-    st.markdown("### 🔬 System Configuration")
-    st.markdown('<span class="status-badge">AI Engine: LPU Enabled ⚡</span>', unsafe_allow_html=True)
+    st.subheader("👨‍⚕️ Clinician Info")
+    dr_input = st.text_input("Consultant Name", value="Ahmed Younis")
     st.divider()
-    st.subheader("🎨 Lesion Color Map")
+    st.subheader("🎨 Lesion Map")
     for name, (r, g, b) in LABEL_MAP:
         if name == "Background": continue
-        st.markdown(f'''
-            <div style="display:flex; align-items:center; margin-bottom:8px;">
-                <div style="width:14px; height:14px; background:rgb({r},{g},{b}); border-radius:4px; margin-right:10px; border:1px solid #cbd5e1;"></div>
-                <span style="font-size:0.9rem; color:#475569;">{name}</span>
-            </div>
-            ''', unsafe_allow_html=True)
+        st.markdown(f'<div style="display:flex;align-items:center;margin-bottom:5px;"><div style="width:12px;height:12px;background:rgb({r},{g},{b});border-radius:3px;margin-right:10px;"></div><small>{name}</small></div>', unsafe_allow_html=True)
 
-# Main File Upload Interface
-uploaded_files = st.file_uploader(
-    "📥 Drag and drop a sequence of patient OCT scans (JPG, PNG)", 
-    type=["jpg", "png", "jpeg"], 
-    accept_multiple_files=True
-)
+uploaded_files = st.file_uploader("Upload Patient OCT Sequence (JPG/PNG)", type=["jpg", "png", "jpeg"], accept_multiple_files=True)
 
 if uploaded_files:
     MODEL = load_model()
     clinical_history = []
     
-    # Sequence Processing
-    with st.status("Analyzing Retinal Layers & Fluid Patterns...", expanded=True) as status:
+    with st.status("Analyzing Retinal Scans...", expanded=True) as status:
         for f in uploaded_files:
             img = Image.open(f).convert("RGB")
             mask, stats, f_idx = analyze_scan(img, MODEL)
-            
-            # Flattened data structure for reliable DataFrame indexing
-            entry = {
-                "Filename": f.name, 
-                "Original": img, 
-                "Mask": mask,
-                "Fluid Index (%)": round(f_idx, 2)
-            }
-            entry.update(stats) # Integrate lesion counts directly
+            entry = {"Filename": f.name, "Original": img, "Mask": mask, "Fluid Index (%)": round(f_idx, 2)}
+            entry.update(stats)
             clinical_history.append(entry)
-            
-        status.update(label="Sequence Analysis Complete!", state="complete", expanded=False)
+        status.update(label="Analysis Complete", state="complete", expanded=False)
 
     df = pd.DataFrame(clinical_history)
-    
-    # Navigation Tabs
-    tab1, tab2, tab3 = st.tabs(["📉 Temporal Trends", "🖼️ Segmentation Gallery", "📑 AI Clinical Report"])
-    
-    with tab1:
-        st.subheader("Temporal Progression of Retinal Fluid")
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df['Filename'], y=df['Fluid Index (%)'], 
-            mode='lines+markers', 
-            line=dict(color='#3b82f6', width=4),
-            marker=dict(size=14, color='white', line=dict(color='#3b82f6', width=2))
-        ))
-        fig.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            xaxis_title="Scan Filename (Sequence Order)", yaxis_title="Fluid Concentration (%)",
-            margin=dict(l=0, r=0, t=20, b=0)
-        )
+    t1, t2, t3 = st.tabs(["📉 Temporal Trends", "🖼️ Results Gallery", "📑 Official Report"])
+
+    # --- Tab 1: Visualization ---
+    with t1:
+        st.subheader("Fluid Concentration Trends")
+        fig = go.Figure(go.Scatter(x=df['Filename'], y=df['Fluid Index (%)'], mode='lines+markers', line=dict(color='#3b82f6', width=4), marker=dict(size=12)))
         st.plotly_chart(fig, use_container_width=True)
         
-        # Clinical Metrics
-        if len(df) > 1:
-            change = df['Fluid Index (%)'].iloc[-1] - df['Fluid Index (%)'].iloc[0]
-            c1, c2, c3 = st.columns(3)
-            with c1: st.metric("Global Trend", f"{change:+.2f}%", delta=change, delta_color="inverse")
-            with c2: 
-                status_text = "Improving ✅" if change < 0 else "Worsening ⚠️"
-                st.markdown(f'<div class="metric-card"><h5>Clinical Status</h5><h3>{status_text}</h3></div>', unsafe_allow_html=True)
-            with c3: 
-                st.markdown(f'<div class="metric-card"><h5>Fluid Delta</h5><p>{df["Fluid Index (%)"].iloc[0]}% → {df["Fluid Index (%)"].iloc[-1]}%</p></div>', unsafe_allow_html=True)
-
-    with tab2:
-        st.subheader("Automated Segmentation Detail")
+    # --- Tab 2: Gallery ---
+    with t2:
         for data in clinical_history:
-            with st.expander(f"👁️ Analysis: {data['Filename']}"):
-                col_a, col_b, col_c = st.columns([2, 2, 1.2])
-                with col_a: st.image(data['Original'], caption="Retinal B-Scan", width='stretch')
-                with col_b: st.image(data['Mask'], caption="AI Fluid Mapping", width='stretch')
-                with col_c:
-                    st.write("**Quantification**")
-                    st.write(f"Fluid Index: `{data['Fluid Index (%)']}%`")
+            with st.expander(f"Details: {data['Filename']}"):
+                c1, c2, c3 = st.columns([2, 2, 1.2])
+                c1.image(data['Original'], caption="Input Scan", width='stretch')
+                c2.image(data['Mask'], caption="AI Segmentation", width='stretch')
+                with c3:
+                    st.write(f"**Fluid Index: {data['Fluid Index (%)']}%**")
                     st.divider()
                     for cls in FLUID_CLASSES:
-                        px_count = data.get(cls, 0)
-                        if px_count > 0:
-                            st.write(f"• {cls}: **{px_count:,} px**")
+                        if data.get(cls, 0) > 0: st.write(f"• {cls}: {data[cls]:,} px")
 
-    with tab3:
-        st.subheader("🤖 Groq-AI Clinical Interpretation")
-        if st.button("Generate Diagnostic Summary", type="primary"):
-            with st.spinner("LPU Engine is synthesizing clinical findings..."):
-                try:
-                    # Select only necessary columns for the AI report
-                    analysis_cols = ["Filename", "Fluid Index (%)"] + [c for c in FLUID_CLASSES if c in df.columns]
-                    report = get_groq_intelligence_report(df[analysis_cols]) 
-                    st.markdown(f'<div class="report-box">{report}</div>', unsafe_allow_html=True)
-                except Exception as e:
-                    st.error(f"Intelligence Engine Error: {e}")
+    # --- Tab 3: Official Reporting ---
+    with t3:
+        st.subheader("📝 Medical Documentation System")
+        with st.expander("Step 1: Patient Demographic Data", expanded=True):
+            col1, col2 = st.columns(2)
+            p_name = col1.text_input("Full Patient Name", placeholder="e.g. John Doe")
+            p_id = col1.text_input("Patient ID / MRN", placeholder="e.g. #OCT-2026")
+            p_age = col2.number_input("Age", 1, 120, 45)
+            p_gender = col2.selectbox("Gender", ["Male", "Female", "Other"])
+
+        if st.button("🚀 Generate AI Clinical Draft", type="primary"):
+            if not p_name: st.warning("Please fill in the patient name.")
+            else:
+                with st.spinner("Synthesizing clinical findings..."):
+                    cols = ["Filename", "Fluid Index (%)"] + [c for c in FLUID_CLASSES if c in df.columns]
+                    st.session_state['report_content'] = get_groq_report(df[cols])
+
+        if 'report_content' in st.session_state:
+            st.markdown("### ✍️ Step 2: Review & Edit Findings")
+            final_text = st.text_area("Official Clinical Summary (Editable)", value=st.session_state['report_content'], height=400)
+            st.session_state['report_content'] = final_text
+            
+            st.divider()
+            st.markdown("### 🖨️ Step 3: Finalize Report")
+            col_pdf, col_prnt = st.columns(2)
+            p_info = {"name": p_name, "age": p_age, "gender": p_gender, "id": p_id}
+            
+            with col_pdf:
+                pdf_bytes = create_medical_pdf(p_info, dr_input, st.session_state['report_content'])
+                st.download_button(label="📥 Download Signed PDF", data=pdf_bytes, file_name=f"OCT_Report_{p_name}.pdf", mime="application/pdf")
+            
+            with col_prnt:
+                if st.button("🖨️ Print Preview"):
+                    st.markdown(f'<div style="background:white; color:black; padding:40px; border:2px solid #3b82f6; border-radius:15px; font-family:serif;">'
+                                f'<h2 style="text-align:center;">Clinical Assessment Report</h2><hr>'
+                                f'<p><b>Consultant:</b> Dr. {dr_input} | <b>Date:</b> {time.strftime("%Y-%m-%d")}</p>'
+                                f'<p><b>Patient:</b> {p_name} | <b>ID:</b> {p_id}</p><hr>'
+                                f'<p style="white-space:pre-wrap; font-size:1.1rem;">{final_text}</p>'
+                                f'<br><br><p style="text-align:right;"><b>Digitally Verified by Dr. {dr_input}</b></p></div>', unsafe_allow_html=True)
+                    st.components.v1.html("<script>window.print();</script>", height=0)
 
 else:
-    st.info("🏥 Welcome, Dr. Abdo. Please upload a patient's OCT scan sequence to initiate AI analysis.")
+    st.info("🏥 Welcome, Dr. Abdo. Please upload the OCT sequence to begin automated clinical analysis.")
 
-# Footer
-st.markdown("""
-    <br><hr>
-    <div style="text-align:center; color:#64748b; font-size:0.9rem; padding-bottom:20px;">
-        VisionOCT Pro Suite | Clinical Decision Support System | Developed by Abdo Lasheen | 2026
-    </div>
-    """, unsafe_allow_html=True)
+st.markdown("<br><hr><center style='color:#64748b;'>VisionOCT Pro Suite | Developed by Abdo Lasheen | 2026</center>", unsafe_allow_html=True)
