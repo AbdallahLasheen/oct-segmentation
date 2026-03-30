@@ -14,5 +14,6 @@ numpy
 pandas
 plotly
 
-# AI Integration (Grok Cloud)
+# AI Integration & Reporting
 openai
+fpdf2
