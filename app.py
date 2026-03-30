@@ -13,13 +13,14 @@ import time
 import io
 
 # ── SECTION 1: SYSTEM CONFIGURATION ──
+# Setting up the web page title and university branding
 st.set_page_config(
-    page_title="VisionOCT Pro | Clinical Diagnostic Suite", 
+    page_title="VisionOCT Pro | Alamein International University", 
     layout="wide", 
     page_icon="🏥"
 )
 
-# Custom Medical-Grade UI Styling
+# Custom Professional Medical UI Styling
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -62,20 +63,21 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ── SECTION 2: CLINICAL CONSTANTS ──
+# Label mapping based on training data classes and RGB colors
 LABEL_MAP = [
     ("Background", (0,0,0)), ("Drosenoid PED", (248,231,180)),
     ("Fibrovascular PED", (255,53,94)), ("HRF", (240,120,240)),
     ("IRF", (170,223,235)), ("PH", (51,221,255)),
     ("SHRM", (204,153,51)), ("SRF", (42,125,209)),
 ]
-# Critical Fluid classes for medical progression tracking
+# Primary fluid categories for pathology quantification
 FLUID_CLASSES = ["IRF", "SRF", "Drosenoid PED", "Fibrovascular PED"]
 CLASS_COLORS = np.array([c for _, c in LABEL_MAP], dtype=np.uint8)
 
-# ── SECTION 3: CORE AI ENGINE (U-NET) ──
+# ── SECTION 3: DEEP LEARNING ENGINE (U-NET) ──
 @st.cache_resource
 def load_model():
-    """Initializes the AI model and loads pre-trained weights."""
+    """Initializes the segmentation model and loads local weights."""
     model = smp.Unet(encoder_name="efficientnet-b0", encoder_weights=None, in_channels=3, classes=len(LABEL_MAP))
     try:
         with open("unet_oct_best_v2.pth", "rb") as f:
@@ -87,7 +89,7 @@ def load_model():
     return model
 
 def analyze_scan(img, model):
-    """Predicts segmentation mask and calculates clinical fluid metrics."""
+    """Processes scan through neural network and calculates fluid metrics."""
     orig_size = img.size
     resized = img.resize((256, 256), Image.BILINEAR)
     tensor = TF.normalize(TF.to_tensor(resized), [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]).unsqueeze(0)
@@ -95,18 +97,19 @@ def analyze_scan(img, model):
     with torch.no_grad():
         mask_idx = model(tensor).argmax(dim=1).squeeze(0).cpu().numpy()
     
+    # Calculate pathology statistics
     stats = {name: int((mask_idx == i).sum()) for i, (name, _) in enumerate(LABEL_MAP)}
     fluid_px = sum(stats[cls] for cls in FLUID_CLASSES)
     
-    # Fluid Index Calculation: Sum of fluid pixels / 65536 total pixels
+    # Mathematical Model for Fluid Index
     fluid_idx = (fluid_px / (256 * 256)) * 100
     
     mask_rgb = Image.fromarray(CLASS_COLORS[mask_idx].astype(np.uint8)).resize(orig_size, Image.NEAREST)
     return mask_rgb, stats, fluid_idx
 
-# ── SECTION 4: INTELLIGENCE & PDF GENERATION ──
+# ── SECTION 4: CLINICAL AI & PDF LOGIC ──
 def get_groq_ai_response(prompt):
-    """General AI function for both report drafting and interactive chat."""
+    """Connects to Groq LPU (Llama 3.3) for clinical reasoning."""
     client = OpenAI(api_key=st.secrets["GROK_API_KEY"], base_url="https://api.groq.com/openai/v1")
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
@@ -117,19 +120,20 @@ def get_groq_ai_response(prompt):
     return response.choices[0].message.content
 
 def create_medical_pdf(p_info, dr_name, report_text):
-    """Generates an official PDF file for clinical archiving."""
+    """Generates an official PDF report branded for AIU."""
     pdf = FPDF()
     pdf.add_page()
     try:
         pdf.image("uni_logo.png", x=10, y=8, w=30)
     except: pass
     
+    # Branded Header for Alamein International University
     pdf.set_font("Arial", 'B', 16)
     pdf.set_x(45)
-    pdf.cell(0, 10, "NILE UNIVERSITY - CLINICAL DIAGNOSTICS", ln=True)
+    pdf.cell(0, 10, "ALAMEIN INTERNATIONAL UNIVERSITY - AIU", ln=True)
     pdf.set_font("Arial", size=10)
     pdf.set_x(45)
-    pdf.cell(0, 5, "VisionOCT Advanced AI Diagnostic Laboratory", ln=True)
+    pdf.cell(0, 5, "VisionOCT | Advanced Neural Imaging & AI Diagnostics", ln=True)
     pdf.ln(15)
     
     # Patient Demographic Box
@@ -143,7 +147,7 @@ def create_medical_pdf(p_info, dr_name, report_text):
     pdf.cell(95, 7, f" Gender: {p_info['gender']}", border=1, ln=True)
     pdf.ln(10)
     
-    # Findings Body
+    # Findings Section
     pdf.set_font("Arial", 'B', 11)
     pdf.cell(0, 8, " CLINICAL FINDINGS & AI ANALYSIS", ln=True)
     pdf.set_font("Arial", size=10)
@@ -160,8 +164,8 @@ def create_medical_pdf(p_info, dr_name, report_text):
     
     return bytes(pdf.output())
 
-# ── SECTION 5: MAIN UI LOGIC ──
-st.markdown('<div class="main-header"><h1>🏥 VisionOCT Diagnostic Suite</h1><p>Neural Segmentation & Interactive AI Copilot</p></div>', unsafe_allow_html=True)
+# ── SECTION 5: MAIN UI & APPLICATION FLOW ──
+st.markdown(f'<div class="main-header"><h1>🏥 VisionOCT Diagnostic Suite</h1><p>Alamein International University | Neural Segmentation & Interactive AI Copilot</p></div>', unsafe_allow_html=True)
 
 with st.sidebar:
     st.subheader("👨‍⚕️ Clinician Setup")
@@ -172,13 +176,14 @@ with st.sidebar:
         if name == "Background": continue
         st.markdown(f'<div style="display:flex;align-items:center;margin-bottom:5px;"><div style="width:12px;height:12px;background:rgb({r},{g},{b});border-radius:3px;margin-right:10px;"></div><small>{name}</small></div>', unsafe_allow_html=True)
 
-uploaded_files = st.file_uploader("Upload Patient OCT Sequence", type=["jpg", "png", "jpeg"], accept_multiple_files=True)
+# File Uploader for Sequential OCT Scans
+uploaded_files = st.file_uploader("Upload Patient OCT Sequence (JPG, PNG)", type=["jpg", "png", "jpeg"], accept_multiple_files=True)
 
 if uploaded_files:
     MODEL = load_model()
     clinical_history = []
     
-    # Batch processing files
+    # Processing images sequentially
     with st.status("Analyzing Retinal Scans...", expanded=True) as status:
         for f in uploaded_files:
             img = Image.open(f).convert("RGB")
@@ -186,78 +191,78 @@ if uploaded_files:
             entry = {"Filename": f.name, "Original": img, "Mask": mask, "Fluid Index (%)": round(f_idx, 2)}
             entry.update(stats)
             clinical_history.append(entry)
-        status.update(label="Analysis Complete", state="complete", expanded=False)
+        status.update(label="Sequence Analysis Complete", state="complete", expanded=False)
 
     df = pd.DataFrame(clinical_history)
-    tab1, tab2, tab3 = st.tabs(["📉 Progression Trends", "🖼️ Scan Gallery", "📑 Official Report"])
+    tab1, tab2, tab3 = st.tabs(["📉 Temporal Trends", "🖼️ Scan Gallery", "📑 Official Report"])
 
-    # --- TAB 1: Visualization ---
+    # --- TAB 1: Data Visualization ---
     with tab1:
-        st.subheader("Temporal Progression of Fluid Concentration")
+        st.subheader("Temporal Progression of Retinal Fluid Concentration")
         fig = go.Figure(go.Scatter(x=df['Filename'], y=df['Fluid Index (%)'], mode='lines+markers', line=dict(color='#3b82f6', width=4), marker=dict(size=12)))
         st.plotly_chart(fig, use_container_width=True)
         
-    # --- TAB 2: Image Analysis Gallery ---
+    # --- TAB 2: Results Gallery ---
     with tab2:
         for data in clinical_history:
-            with st.expander(f"👁️ Detailed Review: {data['Filename']}"):
+            with st.expander(f"👁️ View Detailed Analysis: {data['Filename']}"):
                 c1, c2, c3 = st.columns([2, 2, 1.2])
-                c1.image(data['Original'], caption="Retinal B-Scan", width='stretch')
-                c2.image(data['Mask'], caption="AI Fluid Mask", width='stretch')
+                c1.image(data['Original'], caption="Input B-Scan", width='stretch')
+                c2.image(data['Mask'], caption="AI Segmentation", width='stretch')
                 with c3:
                     st.write(f"**Fluid Index: {data['Fluid Index (%)']}%**")
                     st.divider()
                     for cls in FLUID_CLASSES:
                         if data.get(cls, 0) > 0: st.write(f"• {cls}: {data[cls]:,} px")
 
-    # --- TAB 3: DOCUMENTATION & AI INTERACTION ---
+    # --- TAB 3: CLINICAL DOCUMENTATION & AI INTERACTION ---
     with tab3:
-        st.subheader("📝 Professional Clinical Documentation")
+        st.subheader("📝 Professional Clinical Documentation System")
         
-        # Step 1: Patient Demographic Form
+        # Step 1: Patient Demographic Entry
         with st.expander("Step 1: Patient Information", expanded=True):
             col1, col2 = st.columns(2)
-            p_name = col1.text_input("Full Name", placeholder="e.g., John Doe")
-            p_id = col1.text_input("MRN / Patient ID", placeholder="e.g., #OCT-9921")
+            p_name = col1.text_input("Patient Full Name")
+            p_id = col1.text_input("Patient MRN / ID")
             p_age = col2.number_input("Age", 1, 120, 45)
             p_gender = col2.selectbox("Gender", ["Male", "Female", "Other"])
 
-        # Step 2: Generate Draft
+        # Step 2: AI Report Drafting
         if st.button("🚀 Generate AI Clinical Draft", type="primary"):
-            if not p_name: st.warning("Please enter patient name first.")
+            if not p_name: st.warning("Please fill in the patient name.")
             else:
-                with st.spinner("Synthesizing clinical findings..."):
+                with st.spinner("LPU Engine is synthesizing clinical findings..."):
                     cols = ["Filename", "Fluid Index (%)"] + [c for c in FLUID_CLASSES if c in df.columns]
-                    st.session_state['report_text'] = get_groq_ai_response(f"Generate a formal clinical report for this data:\n{df[cols].to_string(index=False)}")
+                    st.session_state['report_text'] = get_groq_ai_response(f"Draft a formal clinical report for this OCT data:\n{df[cols].to_string(index=False)}")
 
-        # Step 3: Edit & Interactive Refinement
+        # Step 3: Review, Manual Edit & AI Refinement
         if 'report_text' in st.session_state:
             st.markdown("---")
             st.markdown("### ✍️ Step 2: Professional Review & AI Refinement")
-            st.info("💡 **Clinical Interaction:** You can manually edit the text box below, or use the Chat Input to tell the AI to update the report for you.")
+            st.info("💡 **Clinical Interaction:** You can manually edit the text box below, or use the Chat Input to ask the AI to update the report for you.")
             
-            # Manual Editor
-            final_report = st.text_area("Clinical Summary (Edit manually)", value=st.session_state['report_text'], height=350)
+            # Manual Editor: Allows the physician to change text directly
+            final_report = st.text_area("Clinical Summary Editor", value=st.session_state['report_text'], height=350)
             st.session_state['report_text'] = final_report 
 
-            # AI Copilot Input
-            user_instruction = st.chat_input("Ask the AI Assistant to update the report (e.g. 'Translate to Arabic', 'Make it more concise')")
+            # AI Interactive Refinement: Allows chat-based updates
+            user_instruction = st.chat_input("Ask the AI to update the report (e.g. 'Translate to Arabic' or 'Make it formal')")
             if user_instruction:
                 with st.spinner("AI Assistant is refining the report..."):
-                    refine_prompt = f"Original Report: {st.session_state['report_text']}\n\nDoctor Instruction: {user_instruction}\n\nUpdate the report accordingly. Return only the new text."
+                    refine_prompt = f"Current Report: {st.session_state['report_text']}\n\nDoctor Instruction: {user_instruction}\n\nUpdate the report accordingly. Return ONLY the new text."
                     st.session_state['report_text'] = get_groq_ai_response(refine_prompt)
                     st.rerun()
 
-            # Step 4: Finalize & Print
+            # Step 4: Final PDF Finalization
             st.markdown("---")
             st.markdown("### 🖨️ Step 3: Finalize Official Document")
             col_pdf, col_prnt = st.columns(2)
             
-            patient_info = {"name": p_name, "age": p_age, "gender": p_gender, "id": p_id}
+            p_info = {"name": p_name, "age": p_age, "gender": p_gender, "id": p_id}
             
             with col_pdf:
-                # Proper binary handling for PDF export
-                pdf_data = create_medical_pdf(patient_info, dr_input, st.session_state['report_text'])
+                # FIXED: Proper binary handling for PDF export
+                pdf_data = create_medical_pdf(p_info, dr_input, st.session_state['report_text'])
                 st.download_button(
                     label="📥 Download Signed Medical PDF", 
                     data=io.BytesIO(pdf_data), 
@@ -268,7 +273,8 @@ if uploaded_files:
             with col_prnt:
                 if st.button("🖨️ Open Print Preview"):
                     st.markdown(f'<div style="background:white; color:black; padding:40px; border:2px solid #3b82f6; border-radius:15px; font-family:serif; text-align:left;">'
-                                f'<h2 style="text-align:center;">Clinical Assessment Report</h2><hr>'
+                                f'<h2 style="text-align:center;">Clinical Assessment Report</h2>'
+                                f'<h4 style="text-align:center; color:#666;">Alamein International University</h4><hr>'
                                 f'<p><b>Physician:</b> Dr. {dr_input} | <b>Date:</b> {time.strftime("%Y-%m-%d")}</p>'
                                 f'<p><b>Patient:</b> {p_name} | <b>ID:</b> {p_id}</p><hr>'
                                 f'<p style="white-space:pre-wrap; font-size:1.1rem;">{st.session_state["report_text"]}</p>'
@@ -276,7 +282,7 @@ if uploaded_files:
                     st.components.v1.html("<script>window.print();</script>", height=0)
 
 else:
-    st.info("🏥 Welcome, Dr. Abdo. Please upload the patient's OCT scans to initiate clinical analysis.")
+    st.info("🏥 Welcome, Dr. Abdo. Please upload the patient's OCT scans to initiate analysis.")
 
-# Footer
-st.markdown("<br><hr><center style='color:#64748b;'>VisionOCT Pro Suite | Developed by Abdo Lasheen | 2026</center>", unsafe_allow_html=True)
+# System Footer
+st.markdown("<br><hr><center style='color:#64748b;'>VisionOCT Pro Suite | Alamein International University | Developed by Abdo Lasheen | 2026</center>", unsafe_allow_html=True)
