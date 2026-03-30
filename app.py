@@ -551,42 +551,34 @@ def fluid_bar(pct, color):
       </div>
     </div>"""
 
-def lesion_sidebar():
-    html = ""
-    for name, (r, g, b) in LABEL_MAP:
-        if name == "Background": continue
-        html += f"""
-        <div class="lesion-item">
-          <div class="lesion-dot" style="background:rgb({r},{g},{b})"></div>
-          <span class="lesion-name">{name}</span>
-        </div>"""
-    return html
-
 # ── SECTION 5: SIDEBAR ──
-with st.sidebar:
-    st.markdown("""
-    <div style="padding:12px 4px 8px">
-      <div style="font-size:11px;font-weight:600;color:#475569;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">
-        Clinician Setup
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-    dr_input = st.text_input("Physician Name", value="Ahmed Younis", label_visibility="visible")
-    st.markdown('<hr style="border-color:#1E2840;margin:12px 0">', unsafe_allow_html=True)
-    st.markdown("""
-    <div style="font-size:11px;font-weight:600;color:#475569;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">
-        Lesion Legend
-    </div>
-    """ + lesion_sidebar(), unsafe_allow_html=True)
-    st.markdown('<hr style="border-color:#1E2840;margin:12px 0">', unsafe_allow_html=True)
-    st.markdown("""
-    <div style="font-size:10px;color:#475569;font-family:'DM Mono',monospace;line-height:1.8">
-      Model: EfficientNet-B0 U-Net<br>
-      Classes: 8 retinal lesions<br>
-      Resolution: 256×256 px<br>
-      Framework: PyTorch + SMP
-    </div>
-    """, unsafe_allow_html=True)
+st.sidebar.markdown("**CLINICIAN SETUP**")
+dr_input = st.sidebar.text_input("Physician Name", value="Ahmed Younis")
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("**LESION LEGEND**")
+
+for name, (r, g, b) in LABEL_MAP:
+    if name == "Background":
+        continue
+    st.sidebar.markdown(
+        f'<div style="display:flex;align-items:center;gap:8px;padding:3px 0;">'
+        f'<div style="width:10px;height:10px;border-radius:50%;background:rgb({r},{g},{b});flex-shrink:0"></div>'
+        f'<span style="font-size:12px;color:#94A3B8">{name}</span>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    '<div style="font-size:11px;color:#475569;line-height:1.9">'
+    'Model: EfficientNet-B0 U-Net<br>'
+    'Classes: 8 retinal lesions<br>'
+    'Resolution: 256×256 px<br>'
+    'Framework: PyTorch + SMP'
+    '</div>',
+    unsafe_allow_html=True
+)
 
 # ── TOPBAR ──
 st.markdown(f"""
