@@ -555,8 +555,9 @@ def get_groq_ai_response(prompt):
     )
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
+        max_tokens=600,
         messages=[
-            {"role": "system", "content": "You are a senior retinal specialist assistant. Keep reports professional and concise to fit on a single page."},
+            {"role": "system", "content": "You are a senior retinal specialist assistant. Write a concise clinical report in ONE page maximum. Do NOT include Patient ID, Date, or Modality fields — these are already in the header. Start directly with the clinical summary."},
             {"role": "user",   "content": prompt}
         ],
         temperature=0.1
@@ -703,7 +704,6 @@ if uploaded_files:
 
     df = pd.DataFrame(clinical_history)
 
-    # Patient bar (auto from filename)
     n_scans  = len(clinical_history)
     peak_val = df["Fluid Index (%)"].max()
     curr_val = df["Fluid Index (%)"].iloc[-1]
@@ -730,7 +730,6 @@ if uploaded_files:
 
     # ── TAB 1: TRENDS ──
     with tab_trends:
-        # Summary metric cards
         reduction = round(((peak_val - curr_val) / peak_val) * 100, 1) if peak_val > 0 else 0
         col1, col2, col3, col4 = st.columns(4)
         with col1:
@@ -744,7 +743,6 @@ if uploaded_files:
 
         st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-        # Main fluid trend chart
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=df['Filename'],
@@ -782,7 +780,6 @@ if uploaded_files:
         st.markdown('<div class="section-header">Temporal Fluid Progression <span class="section-tag">Fluid Index %</span></div>', unsafe_allow_html=True)
         st.plotly_chart(fig, use_container_width=True)
 
-        # Per-fluid-class bar chart
         fluid_cols = [c for c in FLUID_CLASSES if c in df.columns]
         if fluid_cols:
             st.markdown('<div class="section-header">Fluid Compartment Breakdown <span class="section-tag">px per class</span></div>', unsafe_allow_html=True)
@@ -885,7 +882,6 @@ if uploaded_files:
             st.markdown('<hr style="border-color:#1E2840;margin:14px 0">', unsafe_allow_html=True)
             st.markdown('<div class="section-header">Review & AI Refinement</div>', unsafe_allow_html=True)
 
-            # Preview card
             st.markdown(f"""
             <div class="report-card">
               <div class="ai-badge"><div class="ai-dot"></div> AI Clinical Draft — Llama 3.3 70B</div>
@@ -893,7 +889,6 @@ if uploaded_files:
             </div>
             """, unsafe_allow_html=True)
 
-            # Editable version
             final_report = st.text_area(
                 "Edit Clinical Summary",
                 value=st.session_state['report_text'],
@@ -901,7 +896,6 @@ if uploaded_files:
             )
             st.session_state['report_text'] = final_report
 
-            # AI chat refinement
             user_instruction = st.chat_input("Ask AI to refine report  (e.g. 'Make it more formal' / 'Add ICD-10 codes')")
             if user_instruction:
                 with st.spinner("AI refining report..."):
@@ -930,10 +924,9 @@ if uploaded_files:
             with col_prnt:
                 if st.button("🖨 Print Preview"):
                     import re
-                    # Convert markdown to HTML
                     report_html = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', st.session_state["report_text"])
                     report_html = re.sub(r'\*(.*?)\*', r'<em>\1</em>', report_html)
-                    report_html = report_html.replace('\n\n', '</p><p style="margin:10px 0;font-size:14px;color:#1a1a1a;line-height:1.85;">')
+                    report_html = report_html.replace('\n\n', '</p><p style="margin:6px 0;font-size:13px;color:#1a1a1a;line-height:1.7;">')
                     report_html = report_html.replace('\n', '<br>')
 
                     html_content = f"""
@@ -1035,14 +1028,14 @@ if uploaded_files:
     text-transform: uppercase;
   }}
   .findings-body {{
-    padding: 20px 30px;
-    min-height: 200px;
+    padding: 12px 30px;
+    min-height: 0;
   }}
   .findings-body p {{
-    font-size: 14px;
+    font-size: 13px;
     color: #1a1a1a;
-    line-height: 1.85;
-    margin: 10px 0;
+    line-height: 1.7;
+    margin: 6px 0;
   }}
   .findings-body strong {{ color: #0a2744; font-weight: 700; }}
   .stamp-row {{
@@ -1070,6 +1063,18 @@ if uploaded_files:
     text-align: center;
     padding: 6px;
     letter-spacing: 0.5px;
+  }}
+  @media print {{
+    body {{ padding: 0; background: #fff; }}
+    .page {{
+      box-shadow: none !important;
+      border: none !important;
+      max-width: 100%;
+    }}
+    .findings-body p {{
+      font-size: 12px !important;
+      line-height: 1.6 !important;
+    }}
   }}
 </style>
 </head>
@@ -1119,7 +1124,7 @@ if uploaded_files:
   <div class="section-bar">Clinical Findings &amp; AI Analysis</div>
 
   <div class="findings-body">
-    <p style="margin:10px 0;font-size:14px;color:#1a1a1a;line-height:1.85;">{report_html}</p>
+    <p style="margin:6px 0;font-size:13px;color:#1a1a1a;line-height:1.7;">{report_html}</p>
   </div>
 
   <div class="stamp-row">
@@ -1147,7 +1152,6 @@ if uploaded_files:
                     st.components.v1.html(html_content, height=900, scrolling=True)
 
 else:
-    # Welcome state
     st.markdown("""
     <div style="
       background:#141929;border:1px dashed #263050;border-radius:12px;
