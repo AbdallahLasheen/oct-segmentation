@@ -311,15 +311,22 @@ html, body, [class*="css"] {
 /* Plotly chart background */
 .js-plotly-plot .plotly .bg { fill: #141929 !important; }
 
-/* File uploader */
+/* ── FILE UPLOADER ── */
 [data-testid="stFileUploader"] {
     background: #141929 !important;
     border: 1px dashed #263050 !important;
     border-radius: 10px !important;
 }
 [data-testid="stFileUploader"] * { color: #94A3B8 !important; }
+[data-testid="stFileUploader"] small,
+[data-testid="stFileUploader"] span,
+[data-testid="stFileUploader"] p { color: #94A3B8 !important; }
+/* File list items */
+[data-testid="stFileUploaderFile"] { color: #E2E8F0 !important; }
+[data-testid="stFileUploaderFileName"] { color: #E2E8F0 !important; }
+[data-testid="stFileUploaderFileData"] { color: #94A3B8 !important; }
 
-/* Buttons */
+/* ── BUTTONS ── */
 .stButton > button {
     background: #2563EB !important;
     color: #fff !important;
@@ -330,9 +337,7 @@ html, body, [class*="css"] {
     font-weight: 500 !important;
     padding: 8px 18px !important;
 }
-.stButton > button:hover {
-    background: #1D4ED8 !important;
-}
+.stButton > button:hover { background: #1D4ED8 !important; }
 .stDownloadButton > button {
     background: #1A2035 !important;
     color: #93C5FD !important;
@@ -342,53 +347,107 @@ html, body, [class*="css"] {
     font-size: 13px !important;
 }
 
-/* Text inputs */
-.stTextInput input, .stNumberInput input, .stTextArea textarea, .stSelectbox select {
+/* ── TEXT INPUTS ── */
+.stTextInput input {
     background: #141929 !important;
-    border: 1px solid #1E2840 !important;
+    border: 1px solid #263050 !important;
     color: #E2E8F0 !important;
     border-radius: 8px !important;
     font-family: 'DM Sans', sans-serif !important;
     font-size: 13px !important;
+    caret-color: #E2E8F0 !important;
 }
+.stTextInput input::placeholder { color: #475569 !important; }
+.stTextInput input:focus { border-color: #2563EB !important; outline: none !important; }
+
+/* ── NUMBER INPUT ── */
+.stNumberInput input {
+    background: #141929 !important;
+    border: 1px solid #263050 !important;
+    color: #E2E8F0 !important;
+    border-radius: 8px !important;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 13px !important;
+    caret-color: #E2E8F0 !important;
+}
+.stNumberInput button {
+    background: #1E2840 !important;
+    color: #94A3B8 !important;
+    border: 1px solid #263050 !important;
+}
+.stNumberInput button:hover { background: #263050 !important; color: #E2E8F0 !important; }
+
+/* ── SELECTBOX ── */
+.stSelectbox > div > div {
+    background: #141929 !important;
+    border: 1px solid #263050 !important;
+    border-radius: 8px !important;
+    color: #E2E8F0 !important;
+}
+.stSelectbox > div > div > div { color: #E2E8F0 !important; }
+.stSelectbox svg { fill: #475569 !important; }
+/* Dropdown options */
+[data-baseweb="select"] * { background: #141929 !important; color: #E2E8F0 !important; }
+[data-baseweb="popover"] { background: #1A2035 !important; border: 1px solid #263050 !important; }
+[data-baseweb="menu"] { background: #1A2035 !important; }
+[data-baseweb="option"]:hover { background: #263050 !important; }
+
+/* ── TEXTAREA ── */
 .stTextArea textarea {
+    background: #141929 !important;
+    border: 1px solid #263050 !important;
+    color: #E2E8F0 !important;
+    border-radius: 8px !important;
     font-family: 'DM Mono', monospace !important;
     font-size: 12px !important;
     line-height: 1.7 !important;
+    caret-color: #E2E8F0 !important;
 }
-label { color: #94A3B8 !important; font-size: 12px !important; }
+.stTextArea textarea::placeholder { color: #475569 !important; }
 
-/* Expander */
-.streamlit-expanderHeader {
+/* ── LABELS ── */
+label, .stTextInput label, .stNumberInput label,
+.stSelectbox label, .stTextArea label,
+[data-testid="stWidgetLabel"] {
+    color: #94A3B8 !important;
+    font-size: 12px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-weight: 400 !important;
+}
+
+/* ── EXPANDER ── */
+.streamlit-expanderHeader, [data-testid="stExpander"] summary {
     background: #141929 !important;
     border: 1px solid #1E2840 !important;
     border-radius: 8px !important;
     color: #94A3B8 !important;
     font-size: 12px !important;
 }
-.streamlit-expanderContent {
+[data-testid="stExpander"] summary:hover { background: #1A2035 !important; }
+.streamlit-expanderContent, [data-testid="stExpander"] > div:last-child {
     background: #0F1525 !important;
     border: 1px solid #1E2840 !important;
     border-top: none !important;
     border-radius: 0 0 8px 8px !important;
 }
 
-/* Info / warning boxes */
-.stAlert {
-    background: #141929 !important;
-    border: 1px solid #1E2840 !important;
-    border-radius: 8px !important;
-    color: #94A3B8 !important;
-}
+/* ── ALERT / INFO / WARNING ── */
+.stAlert { background: #141929 !important; border: 1px solid #1E2840 !important; border-radius: 8px !important; }
+.stAlert * { color: #94A3B8 !important; }
+[data-testid="stNotification"] { background: #141929 !important; }
 
-/* Status widget */
+/* ── STATUS WIDGET ── */
 [data-testid="stStatusWidget"] {
     background: #141929 !important;
     border: 1px solid #1E2840 !important;
     border-radius: 8px !important;
 }
+[data-testid="stStatusWidget"] * { color: #94A3B8 !important; }
 
-/* Chat input */
+/* ── SPINNER ── */
+[data-testid="stSpinner"] * { color: #94A3B8 !important; }
+
+/* ── CHAT INPUT ── */
 [data-testid="stChatInput"] {
     background: #141929 !important;
     border: 1px solid #1E2840 !important;
@@ -396,9 +455,24 @@ label { color: #94A3B8 !important; font-size: 12px !important; }
 }
 [data-testid="stChatInput"] textarea {
     color: #E2E8F0 !important;
+    background: #141929 !important;
     font-family: 'DM Sans', sans-serif !important;
     font-size: 13px !important;
+    caret-color: #E2E8F0 !important;
 }
+[data-testid="stChatInput"] textarea::placeholder { color: #475569 !important; }
+
+/* ── GENERAL TEXT FIX ── */
+p, span, div, li, small { color: #94A3B8; }
+h1, h2, h3, h4, h5, h6 { color: #E2E8F0 !important; }
+strong, b { color: #E2E8F0 !important; }
+code { color: #93C5FD !important; background: #1A2035 !important; }
+/* Streamlit markdown text */
+[data-testid="stMarkdownContainer"] p { color: #94A3B8 !important; }
+[data-testid="stMarkdownContainer"] strong { color: #E2E8F0 !important; }
+[data-testid="stMarkdownContainer"] h1,
+[data-testid="stMarkdownContainer"] h2,
+[data-testid="stMarkdownContainer"] h3 { color: #E2E8F0 !important; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
