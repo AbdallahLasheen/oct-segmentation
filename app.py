@@ -319,6 +319,12 @@ code { color: #BFDBFE !important; background: #1A2035 !important; }
 # SECTION 2 — CLINICAL CONSTANTS
 # ══════════════════════════════════════════════════════════════════
 
+# ─────────────────────────────────────────────────────────────────
+# IMG_SIZE = 384  ← v5 upgrade (was 256)
+# All masks are processed at this resolution for maximum accuracy.
+# ─────────────────────────────────────────────────────────────────
+IMG_SIZE = 384
+
 # ── Lesion / Feature model (8 classes) ──
 LABEL_MAP = [
     ("Background",          (0,   0,   0  )),
@@ -362,8 +368,8 @@ SEVERITY_WEIGHTS = {
     "PH":               0.5,
 }
 
-PIXEL_TO_MM2 = (6.0 / 256.0) ** 2
-TOTAL_PX     = 256 * 256
+PIXEL_TO_MM2 = (6.0 / IMG_SIZE) ** 2
+TOTAL_PX     = IMG_SIZE * IMG_SIZE
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -414,7 +420,11 @@ def load_layer_model():
 # SECTION 4 — INFERENCE & COMPOSITE RENDERING
 # ══════════════════════════════════════════════════════════════════
 
-def _preprocess(img: Image.Image, size: int = 256):
+def _preprocess(img: Image.Image, size: int = IMG_SIZE):
+    """
+    Resize image to `size × size` then normalise with ImageNet stats.
+    Returns a (1, 3, size, size) float tensor.
+    """
     resized = img.resize((size, size), Image.BILINEAR)
     return TF.normalize(
         TF.to_tensor(resized),
@@ -424,15 +434,22 @@ def _preprocess(img: Image.Image, size: int = 256):
 
 
 def run_lesion_model(img: Image.Image, model) -> np.ndarray:
-    """Returns (256,256) integer mask with class indices."""
-    tensor = _preprocess(img, 256)
+    """
+    Returns (IMG_SIZE, IMG_SIZE) integer mask with lesion class indices.
+    Inference is performed at IMG_SIZE for maximum detail.
+    """
+    tensor = _preprocess(img, IMG_SIZE)
     with torch.no_grad():
         return model(tensor).argmax(dim=1).squeeze(0).cpu().numpy()
 
 
 def run_layer_model(img: Image.Image, model) -> np.ndarray:
-    """Returns (256,256) integer mask with layer indices (0=BG,1=Choroid,2=NSR,3=RPE)."""
-    tensor = _preprocess(img, 256)
+    """
+    Returns (IMG_SIZE, IMG_SIZE) integer mask with layer indices
+    (0=BG, 1=Choroid, 2=NSR, 3=RPE).
+    Inference is performed at IMG_SIZE for maximum detail.
+    """
+    tensor = _preprocess(img, IMG_SIZE)
     with torch.no_grad():
         return model(tensor).argmax(dim=1).squeeze(0).cpu().numpy()
 
@@ -446,30 +463,81 @@ def build_composite_overlay(
 ) -> Image.Image:
     """
     Compose three layers into one image:
-      1. Original grayscale B-scan (base)
+      1. Original grayscale B-scan (base) — resized to IMG_SIZE × IMG_SIZE
       2. Layer segmentation (Choroid / NSR / RPE) — semi-transparent fill
       3. Lesion/feature mask rendered on top — stronger opacity
+
+    Both masks are already IMG_SIZE × IMG_SIZE from inference, so no
+    quality-destroying downsample happens here.  The final image is
+    upscaled back to the original scan resolution only once, at the end.
     """
-    orig_resized = original.resize((256, 256), Image.BILINEAR).convert("RGBA")
+    # ── Work at IMG_SIZE to preserve mask detail ──
+    orig_resized = original.resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR).convert("RGBA")
 
     # ── Layer fill ──
-    layer_rgb  = LAYER_COLORS[layer_mask].astype(np.uint8)
-    layer_rgba = np.concatenate(
-        [layer_rgb, np.full((*layer_mask.shape, 1), int(255 * layer_alpha), dtype=np.uint8)],
-        axis=-1,
-    )
-    layer_img = Image.fromarray(layer_rgba, mode="RGBA")
+    layer_rgb  = LAYER_COLORS[layer_mask].astype(np.uint8)            # (H,W,3)
+    layer_a    = np.full((IMG_SIZE, IMG_SIZE, 1), int(255 * layer_alpha), dtype=np.uint8)
+    layer_rgba = np.concatenate([layer_rgb, layer_a], axis=-1)        # (H,W,4)
+    layer_img  = Image.fromarray(layer_rgba, mode="RGBA")
 
-    # ── Lesion overlay (non-background pixels only) ──
-    lesion_rgb  = CLASS_COLORS[lesion_mask].astype(np.uint8)
-    lesion_a    = np.where(lesion_mask == 0, 0, int(255 * lesion_alpha)).astype(np.uint8)
-    lesion_rgba = np.concatenate([lesion_rgb, lesion_a[:, :, None]], axis=-1)
+    # ── Lesion overlay — non-background pixels only ──
+    lesion_rgb  = CLASS_COLORS[lesion_mask].astype(np.uint8)          # (H,W,3)
+    lesion_a    = np.where(
+        lesion_mask == 0, 0, int(255 * lesion_alpha)
+    ).astype(np.uint8)[:, :, None]                                    # (H,W,1)
+    lesion_rgba = np.concatenate([lesion_rgb, lesion_a], axis=-1)     # (H,W,4)
     lesion_img  = Image.fromarray(lesion_rgba, mode="RGBA")
 
-    # ── Composite ──
+    # ── Composite (all three at IMG_SIZE resolution) ──
     composite = Image.alpha_composite(orig_resized, layer_img)
     composite = Image.alpha_composite(composite, lesion_img)
-    return composite.convert("RGB").resize(original.size, Image.NEAREST)
+
+    # ── Upscale back to original scan size (only one resize at the end) ──
+    return composite.convert("RGB").resize(original.size, Image.LANCZOS)
+
+
+def build_lesion_only_image(
+    original: Image.Image,
+    lesion_mask: np.ndarray,
+    lesion_alpha: float = 0.75,
+) -> Image.Image:
+    """
+    Returns the original B-scan with ONLY the lesion/feature mask
+    composited on top (no layer fill).
+    Output resolution matches original.size.
+    """
+    orig_resized = original.resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR).convert("RGBA")
+
+    lesion_rgb  = CLASS_COLORS[lesion_mask].astype(np.uint8)
+    lesion_a    = np.where(
+        lesion_mask == 0, 0, int(255 * lesion_alpha)
+    ).astype(np.uint8)[:, :, None]
+    lesion_rgba = np.concatenate([lesion_rgb, lesion_a], axis=-1)
+    lesion_img  = Image.fromarray(lesion_rgba, mode="RGBA")
+
+    result = Image.alpha_composite(orig_resized, lesion_img)
+    return result.convert("RGB").resize(original.size, Image.LANCZOS)
+
+
+def build_layer_only_image(
+    original: Image.Image,
+    layer_mask: np.ndarray,
+    layer_alpha: float = 0.50,
+) -> Image.Image:
+    """
+    Returns the original B-scan with ONLY the layer segmentation mask
+    composited on top (no lesion overlay).
+    Output resolution matches original.size.
+    """
+    orig_resized = original.resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR).convert("RGBA")
+
+    layer_rgb  = LAYER_COLORS[layer_mask].astype(np.uint8)
+    layer_a    = np.full((IMG_SIZE, IMG_SIZE, 1), int(255 * layer_alpha), dtype=np.uint8)
+    layer_rgba = np.concatenate([layer_rgb, layer_a], axis=-1)
+    layer_img  = Image.fromarray(layer_rgba, mode="RGBA")
+
+    result = Image.alpha_composite(orig_resized, layer_img)
+    return result.convert("RGB").resize(original.size, Image.LANCZOS)
 
 
 def compute_layer_aware_measurements(
@@ -478,7 +546,7 @@ def compute_layer_aware_measurements(
 ) -> dict:
     """
     For each lesion class, compute:
-      - total pixels
+      - total pixels  (at IMG_SIZE resolution)
       - which retinal layer it predominantly occupies
       - area as fraction of that layer (not the whole image)
     """
@@ -498,12 +566,12 @@ def compute_layer_aware_measurements(
             if overlap > 0:
                 layer_dist[l_name] = overlap
 
-        dominant_layer = max(layer_dist, key=layer_dist.get) if layer_dist else "Unknown"
+        dominant_layer    = max(layer_dist, key=layer_dist.get) if layer_dist else "Unknown"
         dominant_layer_px = layer_dist.get(dominant_layer, 0)
 
         # Layer total pixels (denominator for layer-relative coverage)
         if dominant_layer != "Unknown":
-            l_idx_dom = LAYER_NAMES.index(dominant_layer)
+            l_idx_dom     = LAYER_NAMES.index(dominant_layer)
             layer_total_px = int((layer_mask == l_idx_dom).sum())
         else:
             layer_total_px = TOTAL_PX  # fallback
@@ -513,25 +581,41 @@ def compute_layer_aware_measurements(
         area_mm2  = round(px_total * PIXEL_TO_MM2, 3)
 
         results[name] = {
-            "px":              px_total,
-            "area_mm2":        area_mm2,
-            "image_pct":       image_pct,
-            "dominant_layer":  dominant_layer,
-            "layer_overlap_px":dominant_layer_px,
-            "layer_pct":       layer_pct,
-            "layer_dist":      layer_dist,
+            "px":               px_total,
+            "area_mm2":         area_mm2,
+            "image_pct":        image_pct,
+            "dominant_layer":   dominant_layer,
+            "layer_overlap_px": dominant_layer_px,
+            "layer_pct":        layer_pct,
+            "layer_dist":       layer_dist,
         }
     return results
 
 
 def analyze_scan(img: Image.Image, lesion_model, layer_model):
-    orig_size = img.size
+    """
+    Full pipeline for a single B-scan.
 
-    lesion_mask = run_lesion_model(img, lesion_model)
-    layer_mask  = run_layer_model(img, layer_model)
+    Returns
+    -------
+    lesion_overlay_img  : original + lesion mask blended
+    layer_overlay_img   : original + layer mask blended
+    composite_img       : original + layer mask + lesion mask blended
+    stats               : raw pixel counts per lesion class
+    layer_stats         : raw pixel counts per layer class
+    fluid_idx           : fluid burden percentage
+    sev_score           : weighted severity score (0-100)
+    sev_grade           : "MINIMAL" / "MILD" / "MODERATE" / "SEVERE"
+    sev_color           : hex colour for the grade
+    measurements        : layer-aware measurements dict
+    """
+    # ── Run both models at IMG_SIZE ──
+    lesion_mask = run_lesion_model(img, lesion_model)   # (IMG_SIZE, IMG_SIZE)
+    layer_mask  = run_layer_model(img, layer_model)     # (IMG_SIZE, IMG_SIZE)
 
-    # ── Basic stats ──
-    stats = {name: int((lesion_mask == i).sum()) for i, (name, _) in enumerate(LABEL_MAP)}
+    # ── Basic pixel stats ──
+    stats       = {name: int((lesion_mask == i).sum()) for i, (name, _) in enumerate(LABEL_MAP)}
+    layer_stats = {name: int((layer_mask  == i).sum()) for i, (name, _) in enumerate(LAYER_MAP)}
 
     # ── Fluid index ──
     fluid_px  = sum(stats[cls] for cls in FLUID_CLASSES)
@@ -554,18 +638,16 @@ def analyze_scan(img: Image.Image, lesion_model, layer_model):
     # ── Layer-aware measurements ──
     measurements = compute_layer_aware_measurements(lesion_mask, layer_mask)
 
-    # ── Layer pixel counts ──
-    layer_stats = {name: int((layer_mask == i).sum()) for i, (name, _) in enumerate(LAYER_MAP)}
-
-    # ── Composite image ──
-    composite_img = build_composite_overlay(img, lesion_mask, layer_mask)
-
-    # ── Plain lesion mask (for legacy display) ──
-    lesion_rgb = Image.fromarray(CLASS_COLORS[lesion_mask].astype(np.uint8)).resize(orig_size, Image.NEAREST)
-    layer_rgb  = Image.fromarray(LAYER_COLORS[layer_mask].astype(np.uint8)).resize(orig_size, Image.NEAREST)
+    # ─────────────────────────────────────────────────────────────
+    # THREE output images — all composited at IMG_SIZE then
+    # upscaled to the original scan size.
+    # ─────────────────────────────────────────────────────────────
+    lesion_overlay_img = build_lesion_only_image(img, lesion_mask)
+    layer_overlay_img  = build_layer_only_image(img, layer_mask)
+    composite_img      = build_composite_overlay(img, lesion_mask, layer_mask)
 
     return (
-        lesion_rgb, layer_rgb, composite_img,
+        lesion_overlay_img, layer_overlay_img, composite_img,
         stats, layer_stats,
         fluid_idx, sev_score, sev_grade, sev_color,
         measurements,
@@ -606,7 +688,7 @@ def _safe(text: str) -> str:
         "\u2022": "*",  # bullet
         "\u00b2": "2",  # superscript 2
         "\u00b0": " deg",
-        "%": "%",       # percent is fine in latin-1
+        "%": "%",
     }
     for k, v in replacements.items():
         text = text.replace(k, v)
@@ -737,9 +819,9 @@ device_choice = st.sidebar.selectbox(
     ["Zeiss Cirrus (6mm)", "Heidelberg Spectralis (6mm)", "Topcon DRI (7mm)"],
 )
 device_px_map = {
-    "Zeiss Cirrus (6mm)":         (6.0 / 256.0) ** 2,
-    "Heidelberg Spectralis (6mm)":(6.0 / 320.0) ** 2,
-    "Topcon DRI (7mm)":           (7.0 / 512.0) ** 2,
+    "Zeiss Cirrus (6mm)":          (6.0 / IMG_SIZE) ** 2,
+    "Heidelberg Spectralis (6mm)": (6.0 / IMG_SIZE) ** 2,
+    "Topcon DRI (7mm)":            (7.0 / IMG_SIZE) ** 2,
 }
 PIXEL_TO_MM2 = device_px_map[device_choice]
 
@@ -770,10 +852,10 @@ for name, (r, g, b) in LAYER_MAP:
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     '<div style="font-size:11px;color:#64748B;line-height:2">'
-    'Lesion Model: EfficientNet-B0 U-Net<br>'
-    'Layer Model: EfficientNet-B5 Attn U-Net<br>'
-    'Classes: 8 lesions + 3 retinal layers<br>'
-    'Resolution: 256x256 px | PyTorch + SMP'
+    f'Lesion Model: EfficientNet-B0 U-Net<br>'
+    f'Layer Model: EfficientNet-B5 Attn U-Net<br>'
+    f'Classes: 8 lesions + 3 retinal layers<br>'
+    f'Resolution: {IMG_SIZE}×{IMG_SIZE} px | PyTorch + SMP'
     '</div>',
     unsafe_allow_html=True,
 )
@@ -851,26 +933,27 @@ if visits_input:
             for f in visit["files"]:
                 img = Image.open(f).convert("RGB")
                 (
-                    lesion_mask_img, layer_mask_img, composite_img,
+                    lesion_overlay_img, layer_overlay_img, composite_img,
                     stats, layer_stats,
                     f_idx, sev_score, sev_grade, sev_color,
                     measurements,
                 ) = analyze_scan(img, LESION_MODEL, LAYER_MODEL)
 
                 entry = {
-                    "Visit":           f"Visit {visit['visit_num']}",
-                    "Date":            visit["date"],
-                    "Filename":        f.name,
-                    "Original":        img,
-                    "LesionMask":      lesion_mask_img,
-                    "LayerMask":       layer_mask_img,
-                    "Composite":       composite_img,
-                    "Fluid Index (%)": round(f_idx, 2),
-                    "Severity Score":  sev_score,
-                    "Severity Grade":  sev_grade,
-                    "Severity Color":  sev_color,
-                    "Measurements":    measurements,
-                    "LayerStats":      layer_stats,
+                    "Visit":            f"Visit {visit['visit_num']}",
+                    "Date":             visit["date"],
+                    "Filename":         f.name,
+                    "Original":         img,
+                    # ── Three distinct output images ──
+                    "LesionOverlay":    lesion_overlay_img,   # original + lesion mask
+                    "LayerOverlay":     layer_overlay_img,    # original + layer mask
+                    "Composite":        composite_img,        # original + layers + lesions
+                    "Fluid Index (%)":  round(f_idx, 2),
+                    "Severity Score":   sev_score,
+                    "Severity Grade":   sev_grade,
+                    "Severity Color":   sev_color,
+                    "Measurements":     measurements,
+                    "LayerStats":       layer_stats,
                 }
                 entry.update(stats)
                 scans_this_visit.append(entry)
@@ -1100,7 +1183,6 @@ if visits_input:
                     total_mm2  = round(total_px * PIXEL_TO_MM2, 3)
                     avg_pct    = round(total_px / (TOTAL_PX * vs["Scans"]) * 100, 2)
 
-                    # Aggregate dominant layer across scans
                     layer_counts: dict = {}
                     for scan in vs["Raw Scans"]:
                         dm = scan["Measurements"].get(lesion_name, {}).get("dominant_layer", "Unknown")
@@ -1129,13 +1211,16 @@ if visits_input:
     with tab_scans:
         st.markdown(
             '<div class="composite-info">'
-            '<strong style="color:#BFDBFE">Composite Image</strong> &mdash; '
-            'Each scan is rendered as a 3-layer overlay: '
-            '<span style="color:#FFB432">Choroid</span>, '
+            '<strong style="color:#BFDBFE">Three-Panel Visualization</strong> &mdash; '
+            'Each B-scan produces three overlay images: '
+            '<strong style="color:#7DD3E8">(1) Lesion Overlay</strong> — lesion features only '
+            '(IRF, SRF, PED, HRF, SHRM) on the original scan; '
+            '<strong style="color:#FFB432">(2) Layer Overlay</strong> — retinal layers only '
+            '(<span style="color:#FFB432">Choroid</span>, '
             '<span style="color:#50C878">NSR</span>, '
-            '<span style="color:#7850DC">RPE</span> layers are shown as translucent fills, '
-            'with lesion features (IRF, SRF, PED, HRF, SHRM) rendered on top at higher opacity. '
-            'Fluid area measurements are normalised to the layer the lesion occupies.'
+            '<span style="color:#7850DC">RPE</span>); '
+            '<strong style="color:#BFDBFE">(3) Composite</strong> — both masks fused together. '
+            f'All masks are computed at {IMG_SIZE}×{IMG_SIZE} px for maximum accuracy.'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -1157,7 +1242,7 @@ if visits_input:
                     f"   |   Fluid: {f_val}%   [{status_label}]"
                 ):
                     # ── Four-panel image row ──
-                    c1, c2, c3, c4 = st.columns([1.8, 1.8, 1.8, 1.4])
+                    c1, c2, c3, c4, c5 = st.columns([1.5, 1.5, 1.5, 1.5, 1.4])
 
                     with c1:
                         st.markdown(
@@ -1170,20 +1255,28 @@ if visits_input:
                     with c2:
                         st.markdown(
                             '<div class="scan-panel-header">'
-                            '<span class="scan-panel-title">Layer Segmentation</span></div>',
+                            '<span class="scan-panel-title">Lesion Overlay</span></div>',
                             unsafe_allow_html=True,
                         )
-                        st.image(data["LayerMask"], use_container_width=True)
+                        st.image(data["LesionOverlay"], use_container_width=True)
 
                     with c3:
                         st.markdown(
                             '<div class="scan-panel-header">'
-                            '<span class="scan-panel-title">Composite Overlay</span></div>',
+                            '<span class="scan-panel-title">Layer Overlay</span></div>',
+                            unsafe_allow_html=True,
+                        )
+                        st.image(data["LayerOverlay"], use_container_width=True)
+
+                    with c4:
+                        st.markdown(
+                            '<div class="scan-panel-header">'
+                            '<span class="scan-panel-title">Composite (All)</span></div>',
                             unsafe_allow_html=True,
                         )
                         st.image(data["Composite"], use_container_width=True)
 
-                    with c4:
+                    with c5:
                         # Metrics + findings
                         st.markdown(f"""
                         <div style="padding:8px 0">
@@ -1216,7 +1309,7 @@ if visits_input:
                         lesion_tags = ""
                         for cls in FLUID_CLASSES:
                             if data.get(cls, 0) > 0:
-                                tc = TAG_CLASSES.get(cls, "tag-irf")
+                                tc   = TAG_CLASSES.get(cls, "tag-irf")
                                 meas = data["Measurements"].get(cls, {})
                                 dl   = meas.get("dominant_layer", "?")
                                 lp   = meas.get("layer_pct", 0)
@@ -1294,7 +1387,6 @@ if visits_input:
                     )
                     scan_table = detail_df[cols].to_string(index=False)
 
-                    # Include dominant layer context
                     layer_context = ""
                     for scan in all_scan_details[:3]:
                         for lesion, vals in scan["Measurements"].items():
@@ -1452,7 +1544,7 @@ if visits_input:
     <div class="info-cell"><div class="info-label">Report Date</div><div class="info-value">{time.strftime("%d %b %Y")}</div></div>
     <div class="info-cell"><div class="info-label">Age</div><div class="info-value">{p_age} yrs</div></div>
     <div class="info-cell"><div class="info-label">Gender</div><div class="info-value">{p_gender}</div></div>
-    <div class="info-cell"><div class="info-label">Modality</div><div class="info-value">OCT B-Scan (Dual-Model)</div></div>
+    <div class="info-cell"><div class="info-label">Modality</div><div class="info-value">OCT B-Scan ({IMG_SIZE}px Dual-Model)</div></div>
   </div>
   <div class="section-bar">Visit Summary</div>
   <table class="visit-table">
@@ -1529,11 +1621,12 @@ else:
 # ══════════════════════════════════════════════════════════════════
 # FOOTER
 # ══════════════════════════════════════════════════════════════════
-st.markdown("""
+st.markdown(f"""
 <div style="margin-top:48px;padding-top:16px;border-top:1px solid #1E2840;text-align:center">
   <span style="font-size:11px;color:#475569;font-family:'DM Mono',monospace">
     VisionOCT Pro Suite &nbsp;&middot;&nbsp; Alamein International University
     &nbsp;&middot;&nbsp; Developed by Abdo Lasheen &nbsp;&middot;&nbsp; 2026
+    &nbsp;&middot;&nbsp; IMG_SIZE: {IMG_SIZE}px
   </span>
 </div>
 """, unsafe_allow_html=True)
