@@ -400,7 +400,7 @@ def load_layer_model():
         decoder_attention_type="scse",
     )
     try:
-        with open("layer_seg_best.pth", "rb") as f:
+        with open("attention_unet_effnetb5_oct_best.pth", "rb") as f:
             ckpt = torch.load(f, map_location="cpu", weights_only=False)
         state = ckpt.get("weights", ckpt.get("model_state_dict", ckpt))
         model.load_state_dict(state)
