@@ -327,20 +327,29 @@ div[data-testid="stDataFrame"] * {
     100% { top: 100%; }
 }
 
-header[data-testid="stHeader"] { background-color: rgba(0,0,0,0); }
-[data-testid="stSidebarCollapseButton"] { visibility: visible !important; color: white !important; }
-
-[data-testid="stSidebarCollapseButton"] {
-    color: #F1F5F9 !important;
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    border-radius: 8px !important;
-    inset: 10px !important; 
+header[data-testid="stHeader"] { 
+    background-color: rgba(0,0,0,0) !important; 
+    z-index: 999 !important; 
 }
 
-[data-testid="stSidebarCollapseButton"]:hover {
-    color: #2563EB !important;
-    background-color: rgba(37, 99, 235, 0.2) !important;
-    box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+[data-testid="stSidebarCollapseButton"] svg {
+    fill: #F1F5F9 !important;
+    width: 28px !important;
+    height: 28px !important;
+}
+
+[data-testid="stSidebarCollapseButton"] {
+    background-color: rgba(37, 99, 235, 0.3) !important; /* خلفية زرقاء خفيفة */
+    border: 1px solid #2563EB !important;
+    border-radius: 8px !important;
+    visibility: visible !important;
+    z-index: 1000 !important;
+    top: 10px !important;
+    left: 10px !important;
+}
+
+[data-testid="stSidebarCollapseButton"]:hover svg {
+    fill: #2563EB !important; 
 }
 </style>
 """, unsafe_allow_html=True)
