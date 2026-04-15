@@ -273,112 +273,66 @@ code { color:#BFDBFE !important; background:#1A2035 !important; }
 ::-webkit-scrollbar-thumb:hover { background:#2563EB; }
 
 /* ══════════════════════════════════════════════════════════════
-   ENHANCED DATAFRAME / TABLE STYLING
+   NEW PRO UI ENGINE - HIGH CONTRAST & ANIMATIONS
    ══════════════════════════════════════════════════════════════ */
+
+/* إجبار الجداول تظهر بوضوح كريستال */
 [data-testid="stDataFrame"] {
-    border-radius: 14px !important;
-    overflow: hidden !important;
-    border: 1px solid #263050 !important;
-    animation: fadeSlideUp 0.4s ease both;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(37,99,235,0.08) !important;
     background: #0F1525 !important;
+    border: 1px solid #2563EB33 !important;
+    border-radius: 12px !important;
 }
 
-[data-testid="stDataFrame"] thead tr th,
-[data-testid="stDataFrame"] [data-testid="glideDataEditor"] .gdg-header-cell,
-.stDataFrame thead tr th {
-    background: linear-gradient(135deg, #0D1628 0%, #131d38 100%) !important;
+/* حل مشكلة الكلام اللي مش باين: إجبار اللون الأبيض للنص */
+div[data-testid="stDataFrame"] * {
+    color: #F8FAFC !important;
+    font-family: 'DM Mono', monospace !important;
+}
+
+/* تلوين هيدر الجدول بلون مميز وواضح */
+[data-testid="stDataFrame"] thead tr th {
+    background-color: #1E2840 !important;
     color: #7DD3E8 !important;
-    font-family: 'DM Mono', monospace !important;
-    font-size: 10px !important;
     font-weight: 700 !important;
-    letter-spacing: 1.1px !important;
-    text-transform: uppercase !important;
-    padding: 12px 16px !important;
-    border-bottom: 2px solid #263050 !important;
-    border-right: 1px solid #1A2440 !important;
-    white-space: nowrap !important;
+    border-bottom: 2px solid #2563EB !important;
 }
 
-[data-testid="stDataFrame"] tbody tr td,
-.stDataFrame tbody tr td {
-    background: #141929 !important;
-    color: #CBD5E1 !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 12px !important;
-    padding: 10px 16px !important;
-    border-bottom: 1px solid #1A2440 !important;
-    border-right: 1px solid #1A2440 !important;
-    transition: background 0.15s !important;
+/* أنيميشن التنقل بين الـ Tabs */
+.stTabs [data-baseweb="tab-panel"] {
+    animation: slideUpFade 0.5s ease-out both;
 }
 
-[data-testid="stDataFrame"] tbody tr:nth-child(even) td,
-.stDataFrame tbody tr:nth-child(even) td {
-    background: #101623 !important;
+@keyframes slideUpFade {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
-[data-testid="stDataFrame"] tbody tr:hover td,
-.stDataFrame tbody tr:hover td {
-    background: rgba(37,99,235,0.12) !important;
-    color: #F1F5F9 !important;
-}
-
-[data-testid="stDataFrame"] tbody tr td:not(:first-child) {
-    font-family: 'DM Mono', monospace !important;
-    font-size: 11.5px !important;
-    color: #BFDBFE !important;
-}
-
-[data-testid="stDataFrame"] tbody tr td:first-child {
-    font-family: 'DM Sans', sans-serif !important;
-    font-weight: 600 !important;
-    color: #E2E8F0 !important;
-    border-right: 2px solid #263050 !important;
-}
-
-[data-testid="stDataFrame"] .dvn-scroller {
-    background: #141929 !important;
-}
-[data-testid="stDataFrame"] canvas {
-    border-radius: 0 0 14px 14px !important;
-}
-
-[data-testid="stDataFrame"] ::-webkit-scrollbar { width: 4px; height: 4px; }
-[data-testid="stDataFrame"] ::-webkit-scrollbar-track { background: #0F1525; }
-[data-testid="stDataFrame"] ::-webkit-scrollbar-thumb { background: #263050; border-radius: 2px; }
-
-[data-testid="stDataFrame"] [data-testid="glideDataEditor"] {
-    animation: fadeSlideUp 0.4s ease both;
-}
-
-/* Styled table wrapper for extra polish */
-.table-wrapper {
-    background: #0F1525;
-    border: 1px solid #263050;
-    border-radius: 14px;
+/* تأثير خط الليزر (Scanning Laser) أثناء التحليل */
+.scanning-container {
+    position: relative;
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
-    margin: 8px 0 16px 0;
+    border: 1px solid #2563EB;
+    border-radius: 10px;
 }
-.table-header-row {
-    background: linear-gradient(135deg,#0D1628,#131d38);
-    display: flex;
-    border-bottom: 2px solid #263050;
-    padding: 0;
-}
-.table-header-cell {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    color: #7DD3E8;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    padding: 11px 14px;
-    flex: 1;
-    border-right: 1px solid #1A2440;
-}
-.table-header-cell:last-child { border-right: none; }
 
+.scanning-line {
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(to bottom, transparent, #2563EB, transparent);
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: 0 0 15px #2563EB;
+    animation: scanMove 2.5s linear infinite;
+    z-index: 5;
+}
+
+@keyframes scanMove {
+    0% { top: 0%; }
+    100% { top: 100%; }
+}
+
+/* إخفاء القوائم الافتراضية لستريمليت */
 #MainMenu, footer, header { visibility:hidden; }
 </style>
 """, unsafe_allow_html=True)
