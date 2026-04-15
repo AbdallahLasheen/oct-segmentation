@@ -327,7 +327,8 @@ div[data-testid="stDataFrame"] * {
     100% { top: 100%; }
 }
 
-#MainMenu, footer, header { visibility:hidden; }
+header[data-testid="stHeader"] { background-color: rgba(0,0,0,0); }
+[data-testid="stSidebarCollapseButton"] { visibility: visible !important; color: white !important; }
 </style>
 """, unsafe_allow_html=True)
 
