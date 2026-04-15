@@ -101,7 +101,6 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif !important; }
 }
 .badge-dr { padding:4px 12px; border-radius:20px; background:#141929; color:#CBD5E1; border:1px solid #263050; font-size:11px; }
 
-/* ── Key fix badge ── */
 .badge-fix {
     padding:4px 12px; border-radius:20px;
     background:rgba(52,211,153,0.15); color:#34D399;
@@ -196,14 +195,12 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif !important; }
     animation:borderGlow 4s ease-in-out infinite;
 }
 
-/* ── Localized load indicator ── */
 .load-bar-wrap { margin:5px 0; }
 .load-bar-label { display:flex; justify-content:space-between; margin-bottom:3px; }
 .load-bar-text  { font-size:10px; color:#64748B; font-family:'DM Mono',monospace; }
 .load-bar-bg    { height:4px; background:#1E2840; border-radius:2px; overflow:hidden; }
 .load-bar-fill  { height:100%; border-radius:2px; background:linear-gradient(90deg,#0D9488,#2563EB); }
 
-/* ── Anatomy formula box ── */
 .formula-box {
     background:#0F1525; border:1px solid #263050; border-radius:8px;
     padding:10px 14px; margin:8px 0;
@@ -213,7 +210,6 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif !important; }
 .formula-box .formula-title { color:#BFDBFE; font-weight:600; margin-bottom:4px; font-size:10px; letter-spacing:0.8px; text-transform:uppercase; }
 .formula-highlight { color:#34D399; }
 
-/* ── Stat glow card ── */
 .stat-glow {
     background:radial-gradient(ellipse at top,rgba(37,99,235,0.12) 0%,#141929 60%);
     border:1px solid rgba(37,99,235,0.3); border-radius:16px;
@@ -277,83 +273,76 @@ code { color:#BFDBFE !important; background:#1A2035 !important; }
 ::-webkit-scrollbar-thumb:hover { background:#2563EB; }
 
 /* ══════════════════════════════════════════════════════════════
-   CUSTOM DATAFRAME / TABLE STYLING  — شيك و واضح
+   ENHANCED DATAFRAME / TABLE STYLING
    ══════════════════════════════════════════════════════════════ */
 [data-testid="stDataFrame"] {
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     overflow: hidden !important;
-    border: 1px solid #1E2840 !important;
+    border: 1px solid #263050 !important;
     animation: fadeSlideUp 0.4s ease both;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(37,99,235,0.08) !important;
+    background: #0F1525 !important;
 }
 
-/* Header row */
 [data-testid="stDataFrame"] thead tr th,
 [data-testid="stDataFrame"] [data-testid="glideDataEditor"] .gdg-header-cell,
 .stDataFrame thead tr th {
-    background: linear-gradient(135deg, #0F1829 0%, #131d35 100%) !important;
-    color: #94A3B8 !important;
+    background: linear-gradient(135deg, #0D1628 0%, #131d38 100%) !important;
+    color: #7DD3E8 !important;
     font-family: 'DM Mono', monospace !important;
     font-size: 10px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.9px !important;
+    font-weight: 700 !important;
+    letter-spacing: 1.1px !important;
     text-transform: uppercase !important;
-    padding: 10px 14px !important;
-    border-bottom: 1px solid #263050 !important;
+    padding: 12px 16px !important;
+    border-bottom: 2px solid #263050 !important;
     border-right: 1px solid #1A2440 !important;
     white-space: nowrap !important;
 }
 
-/* Body rows */
 [data-testid="stDataFrame"] tbody tr td,
 .stDataFrame tbody tr td {
     background: #141929 !important;
     color: #CBD5E1 !important;
     font-family: 'DM Sans', sans-serif !important;
     font-size: 12px !important;
-    padding: 9px 14px !important;
+    padding: 10px 16px !important;
     border-bottom: 1px solid #1A2440 !important;
     border-right: 1px solid #1A2440 !important;
     transition: background 0.15s !important;
 }
 
-/* Alternating row stripes */
 [data-testid="stDataFrame"] tbody tr:nth-child(even) td,
 .stDataFrame tbody tr:nth-child(even) td {
     background: #101623 !important;
 }
 
-/* Hover highlight */
 [data-testid="stDataFrame"] tbody tr:hover td,
 .stDataFrame tbody tr:hover td {
-    background: rgba(37,99,235,0.1) !important;
+    background: rgba(37,99,235,0.12) !important;
     color: #F1F5F9 !important;
 }
 
-/* Numeric / mono columns */
 [data-testid="stDataFrame"] tbody tr td:not(:first-child) {
     font-family: 'DM Mono', monospace !important;
     font-size: 11.5px !important;
     color: #BFDBFE !important;
 }
 
-/* First column (label) stays DM Sans, slightly bolder */
 [data-testid="stDataFrame"] tbody tr td:first-child {
     font-family: 'DM Sans', sans-serif !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
     color: #E2E8F0 !important;
     border-right: 2px solid #263050 !important;
 }
 
-/* Glide data editor inner cells (Streamlit's newer table engine) */
 [data-testid="stDataFrame"] .dvn-scroller {
     background: #141929 !important;
 }
 [data-testid="stDataFrame"] canvas {
-    border-radius: 0 0 12px 12px !important;
+    border-radius: 0 0 14px 14px !important;
 }
 
-/* Scrollbar inside table */
 [data-testid="stDataFrame"] ::-webkit-scrollbar { width: 4px; height: 4px; }
 [data-testid="stDataFrame"] ::-webkit-scrollbar-track { background: #0F1525; }
 [data-testid="stDataFrame"] ::-webkit-scrollbar-thumb { background: #263050; border-radius: 2px; }
@@ -361,6 +350,34 @@ code { color:#BFDBFE !important; background:#1A2035 !important; }
 [data-testid="stDataFrame"] [data-testid="glideDataEditor"] {
     animation: fadeSlideUp 0.4s ease both;
 }
+
+/* Styled table wrapper for extra polish */
+.table-wrapper {
+    background: #0F1525;
+    border: 1px solid #263050;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+    margin: 8px 0 16px 0;
+}
+.table-header-row {
+    background: linear-gradient(135deg,#0D1628,#131d38);
+    display: flex;
+    border-bottom: 2px solid #263050;
+    padding: 0;
+}
+.table-header-cell {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: #7DD3E8;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 11px 14px;
+    flex: 1;
+    border-right: 1px solid #1A2440;
+}
+.table-header-cell:last-child { border-right: none; }
 
 #MainMenu, footer, header { visibility:hidden; }
 </style>
@@ -373,6 +390,7 @@ code { color:#BFDBFE !important; background:#1A2035 !important; }
 IMG_SIZE = 384
 TOTAL_PX = IMG_SIZE * IMG_SIZE
 
+# Updated LABEL_MAP with correct colors from label file
 LABEL_MAP = [
     ("Background",          (0,   0,   0  )),
     ("Drusenoid PED",       (248, 231, 180)),
@@ -387,14 +405,15 @@ LABEL_MAP = [
 FLUID_CLASSES = ["IRF", "SRF", "Drusenoid PED", "Fibrovascular PED"]
 CLASS_COLORS  = np.array([c for _, c in LABEL_MAP], dtype=np.uint8)
 
-# ── LAYER COLORS: RPE ↔ Choroid SWAPPED ──────────────────────────
-# Old: Choroid=(255,180,50) amber, RPE=(120,80,220) violet
-# New: Choroid=(120,80,220) violet, RPE=(255,180,50) amber
+# Updated LAYER_MAP — colors from label file:
+# Choroid = (54,59,81)  → dark blue-gray (was labeled "Choroid and outer layers")
+# NSR     = (36,179,83) → green
+# RPE     = (255,204,51)→ amber/gold
 LAYER_MAP = [
     ("Background", (0,   0,   0  )),
-    ("Choroid",    (120, 80,  220)),   # ← now violet/purple (was amber)
-    ("NSR",        (80,  200, 120)),   # unchanged — green
-    ("RPE",        (255, 180, 50 )),   # ← now amber/gold (was violet)
+    ("Choroid",    (54,  59,  81 )),   # dark blue-gray (from label file)
+    ("NSR",        (36,  179, 83 )),   # green
+    ("RPE",        (255, 204, 51 )),   # amber/gold
 ]
 LAYER_COLORS = np.array([c for _, c in LAYER_MAP], dtype=np.uint8)
 LAYER_NAMES  = [n for n, _ in LAYER_MAP]
@@ -409,9 +428,7 @@ TAG_CLASSES = {
     "SHRM":             "tag-shrm",
 }
 
-# ─────────────────────────────────────────────────────────────────
 # Clinical multipliers — per specifications (DO NOT CHANGE)
-# ─────────────────────────────────────────────────────────────────
 CLINICAL_MULTIPLIERS = {
     "Fibrovascular PED": 2.5,
     "IRF":               2.0,
@@ -551,7 +568,7 @@ def build_layer_only_image(original, layer_mask, layer_alpha=0.50):
 
 
 # ══════════════════════════════════════════════════════════════════
-# SECTION 6 — CORE MEASUREMENT PIPELINE (ANATOMICALLY-CORRECT)
+# SECTION 6 — CORE MEASUREMENT PIPELINE
 # ══════════════════════════════════════════════════════════════════
 
 def compute_layer_aware_measurements(
@@ -691,7 +708,8 @@ def get_groq_ai_response(prompt: str) -> str:
                 "Start directly with the clinical summary. Use clear sections: Clinical Summary, "
                 "Key Findings, Impression, and Recommendations. Do NOT use markdown bold (**) markers. "
                 "Note: all fluid and severity metrics are layer-relative (% of dominant retinal layer), "
-                "not image-relative. This makes even small percentages clinically significant."
+                "not image-relative. This makes even small percentages clinically significant. "
+                "Do NOT include any measurement method formulas or technical pipeline explanations in the report."
             )},
             {"role": "user", "content": prompt},
         ],
@@ -733,7 +751,7 @@ def create_medical_pdf(p_info, dr_name, report_text, visit_summary=None, device_
     pdf.cell(95, 6, _safe(f" ID: {p_info['id']}"), border=1, ln=True)
     pdf.cell(95, 6, _safe(f" Age: {p_info['age']}"), border=1)
     pdf.cell(95, 6, _safe(f" Gender: {p_info['gender']}"), border=1, ln=True)
-    pdf.cell(190, 6, _safe(f" Device: {device_name} | Severity: Layer-Relative (Anatomically Correct)"), border=1, ln=True)
+    pdf.cell(190, 6, _safe(f" Device: {device_name}"), border=1, ln=True)
     if visit_summary:
         pdf.ln(4)
         pdf.set_font("Arial", "B", 10)
@@ -807,8 +825,8 @@ def severity_bar(score, color):
 
 def load_bar(load_pct, layer_name, color):
     width = min(load_pct, 100)
-    # ── Updated hex values to match swapped LAYER_COLORS ──
-    lc = {"Choroid": "#7850DC", "NSR": "#50C878", "RPE": "#FFB432"}.get(layer_name, "#64748B")
+    # Updated hex values to match updated LAYER_COLORS
+    lc = {"Choroid": "#363B51", "NSR": "#24B353", "RPE": "#FFCC33"}.get(layer_name, "#64748B")
     return f"""<div class="load-bar-wrap">
       <div class="load-bar-label">
         <span class="load-bar-text" style="color:{lc}">{layer_name} layer</span>
@@ -818,8 +836,8 @@ def load_bar(load_pct, layer_name, color):
     </div>"""
 
 def layer_color_hex(name):
-    # ── Updated to match swapped colors ──
-    return {"Choroid": "#7850DC", "NSR": "#50C878", "RPE": "#FFB432", "Unknown": "#64748B"}.get(name, "#94A3B8")
+    # Updated to match new LAYER_COLORS
+    return {"Choroid": "#6B7280", "NSR": "#24B353", "RPE": "#FFCC33", "Unknown": "#64748B"}.get(name, "#94A3B8")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -882,11 +900,11 @@ for name, (r, g, b) in LABEL_MAP:
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("**LAYER LEGEND**")
-# ── Updated descriptions to match swapped colors ──
+# Updated colors to match new LAYER_MAP
 for name, r, g, b, desc in [
-    ("Choroid", 120,  80, 220, "Deep outer — violet"),      # ← violet now
-    ("NSR",      80, 200, 120, "Neural sensory — green"),   # unchanged
-    ("RPE",     255, 180,  50, "Pigment epithelium — amber"), # ← amber now
+    ("Choroid", 54,  59,  81,  "Outer layers — dark blue-gray"),
+    ("NSR",     36,  179, 83,  "Neural sensory — green"),
+    ("RPE",     255, 204, 51,  "Pigment epithelium — amber"),
 ]:
     st.sidebar.markdown(
         f'<div style="display:flex;align-items:center;gap:8px;padding:3px 0;">'
@@ -927,7 +945,7 @@ st.markdown(f"""
     <span class="badge-model">Dual-Model AI</span>
     <span class="badge-fix">⚕ Layer-Relative Load</span>
     <span class="badge-dr">Dr. {dr_input}</span>
-    <span style="padding:4px 12px;border-radius:20px;background:rgba(120,80,220,0.15);color:#C4B5FD;border:1px solid rgba(120,80,220,0.3);font-size:11px;font-family:'DM Mono',monospace">{device_choice.split('(')[0].strip()}</span>
+    <span style="padding:4px 12px;border-radius:20px;background:rgba(255,204,51,0.12);color:#FFCC33;border:1px solid rgba(255,204,51,0.3);font-size:11px;font-family:'DM Mono',monospace">{device_choice.split('(')[0].strip()}</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1324,7 +1342,7 @@ if visits_input:
             '<div class="composite-info">'
             '<strong style="color:#BFDBFE">Three-Panel Visualization</strong> &mdash; '
             '<strong style="color:#7DD3E8">(1) Lesion Overlay</strong> · '
-            '<strong style="color:#FFB432">(2) Layer Overlay</strong> · '
+            '<strong style="color:#FFCC33">(2) Layer Overlay</strong> · '
             '<strong style="color:#BFDBFE">(3) Composite</strong>. '
             f'All computed at {IMG_SIZE}×{IMG_SIZE}px. '
             '<span style="color:#34D399">Fluid Index = Σ load% per fluid class relative to its dominant layer.</span> '
@@ -1515,6 +1533,8 @@ if visits_input:
                         f"IMPORTANT: All fluid and severity metrics are layer-relative (% of the "
                         f"dominant retinal layer), NOT image-relative. Even a 5% load on the thin "
                         f"RPE layer is clinically significant.\n\n"
+                        f"Do NOT include any technical formulas, measurement method descriptions, "
+                        f"or pipeline details in the report. Focus purely on clinical interpretation.\n\n"
                         f"VISIT SUMMARY:\n" + "\n".join(visit_lines) + "\n\n"
                         f"SCAN DATA:\n{scan_table}\n\n"
                         f"LOCALIZED LOAD CONTEXT:\n{layer_context}\n\n"
@@ -1540,7 +1560,8 @@ if visits_input:
             if user_instruction:
                 with st.spinner("Refining..."):
                     st.session_state["report_text"] = get_groq_ai_response(
-                        f"Original:\n{st.session_state['report_text']}\n\nInstruction: {user_instruction}"
+                        f"Original:\n{st.session_state['report_text']}\n\nInstruction: {user_instruction}\n\n"
+                        f"Do NOT include any measurement method formulas or technical pipeline descriptions."
                     )
                     st.rerun()
 
@@ -1603,7 +1624,6 @@ body{{background:#f0f4f8;font-family:Arial,sans-serif;padding:20px}}
 .visit-table{{width:100%;border-collapse:collapse;font-size:12px}}
 .visit-table th{{background:#f1f5f9;color:#475569;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;padding:8px 12px;text-align:left;border-bottom:1px solid #e2e8f0}}
 .visit-table td{{padding:7px 12px;border-bottom:1px solid #f1f5f9;color:#1e293b}}
-.formula-note{{background:#f0fdf4;border-left:3px solid #16a34a;padding:8px 16px;margin:8px 30px;font-size:10px;color:#374151}}
 .findings-body{{padding:12px 30px}}
 .findings-body p{{font-size:13px;color:#1a1a1a;line-height:1.7;margin:6px 0}}
 .stamp-row{{display:flex;justify-content:space-between;align-items:flex-end;padding:16px 30px;border-top:2px solid #e2e8f0;background:#f8fafc}}
@@ -1622,7 +1642,7 @@ body{{background:#f0f4f8;font-family:Arial,sans-serif;padding:20px}}
   </div>
   <div class="title-bar">
     <div class="report-title">OCT RETINAL ANALYSIS — MULTI-VISIT CLINICAL REPORT</div>
-    <div class="report-subtitle">AI-Assisted | Layer-Relative Localized Pathological Load | Dilution-Effect Corrected | Confidential</div>
+    <div class="report-subtitle">AI-Assisted | Layer-Relative Localized Pathological Load | Confidential</div>
   </div>
   <div class="info-grid">
     <div class="info-cell"><div class="info-label">Patient Name</div><div class="info-value">{p_name or '-'}</div></div>
@@ -1631,11 +1651,6 @@ body{{background:#f0f4f8;font-family:Arial,sans-serif;padding:20px}}
     <div class="info-cell"><div class="info-label">Age</div><div class="info-value">{p_age} yrs</div></div>
     <div class="info-cell"><div class="info-label">Gender</div><div class="info-value">{p_gender}</div></div>
     <div class="info-cell"><div class="info-label">Modality</div><div class="info-value">{device_choice}</div></div>
-  </div>
-  <div class="formula-note">
-    <strong>Measurement Method:</strong> All metrics are layer-relative.
-    Load% = (Lesion ∩ layer_dom) / |layer_dom| × 100 — not diluted by background pixels.
-    Severity = Σ(Load²/100 × ClinMultiplier) / 250 × 100.
   </div>
   <div class="section-bar">Visit Summary</div>
   <table class="visit-table">
@@ -1683,10 +1698,10 @@ else:
       <div style="margin-top:28px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <span style="padding:6px 16px;border-radius:20px;background:rgba(52,211,153,0.12);color:#34D399;border:1px solid rgba(52,211,153,0.25);font-size:11px;font-family:'DM Mono',monospace">⚕ Layer-Relative Load</span>
         <span style="padding:6px 16px;border-radius:20px;background:rgba(37,99,235,0.12);color:#BFDBFE;border:1px solid rgba(37,99,235,0.25);font-size:11px;font-family:'DM Mono',monospace">IRF / SRF / PED Detection</span>
-        <span style="padding:6px 16px;border-radius:20px;background:rgba(255,180,50,0.12);color:#FFB432;border:1px solid rgba(255,180,50,0.25);font-size:11px;font-family:'DM Mono',monospace">Choroid / NSR / RPE Layers</span>
+        <span style="padding:6px 16px;border-radius:20px;background:rgba(255,204,51,0.12);color:#FFCC33;border:1px solid rgba(255,204,51,0.25);font-size:11px;font-family:'DM Mono',monospace">Choroid / NSR / RPE Layers</span>
         <span style="padding:6px 16px;border-radius:20px;background:rgba(240,120,240,0.12);color:#E879F9;border:1px solid rgba(240,120,240,0.25);font-size:11px;font-family:'DM Mono',monospace">Composite Overlay</span>
         <span style="padding:6px 16px;border-radius:20px;background:rgba(248,113,113,0.12);color:#F87171;border:1px solid rgba(248,113,113,0.25);font-size:11px;font-family:'DM Mono',monospace">AI Clinical Report</span>
-        <span style="padding:6px 16px;border-radius:20px;background:rgba(120,80,220,0.12);color:#C4B5FD;border:1px solid rgba(120,80,220,0.25);font-size:11px;font-family:'DM Mono',monospace">ZIP Folder Upload</span>
+        <span style="padding:6px 16px;border-radius:20px;background:rgba(36,179,83,0.12);color:#24B353;border:1px solid rgba(36,179,83,0.25);font-size:11px;font-family:'DM Mono',monospace">ZIP Folder Upload</span>
       </div>
     </div>
     """, unsafe_allow_html=True)
