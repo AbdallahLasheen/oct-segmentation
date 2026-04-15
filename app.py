@@ -329,6 +329,19 @@ div[data-testid="stDataFrame"] * {
 
 header[data-testid="stHeader"] { background-color: rgba(0,0,0,0); }
 [data-testid="stSidebarCollapseButton"] { visibility: visible !important; color: white !important; }
+
+[data-testid="stSidebarCollapseButton"] {
+    color: #F1F5F9 !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    inset: 10px !important; 
+}
+
+[data-testid="stSidebarCollapseButton"]:hover {
+    color: #2563EB !important;
+    background-color: rgba(37, 99, 235, 0.2) !important;
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+}
 </style>
 """, unsafe_allow_html=True)
 
