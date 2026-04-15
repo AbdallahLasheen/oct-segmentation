@@ -275,7 +275,93 @@ code { color:#BFDBFE !important; background:#1A2035 !important; }
 ::-webkit-scrollbar-track { background:#0A0E1A; }
 ::-webkit-scrollbar-thumb { background:#1E2840; border-radius:3px; }
 ::-webkit-scrollbar-thumb:hover { background:#2563EB; }
-[data-testid="stDataFrame"] { animation:fadeSlideUp 0.4s ease both; }
+
+/* ══════════════════════════════════════════════════════════════
+   CUSTOM DATAFRAME / TABLE STYLING  — شيك و واضح
+   ══════════════════════════════════════════════════════════════ */
+[data-testid="stDataFrame"] {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    border: 1px solid #1E2840 !important;
+    animation: fadeSlideUp 0.4s ease both;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3) !important;
+}
+
+/* Header row */
+[data-testid="stDataFrame"] thead tr th,
+[data-testid="stDataFrame"] [data-testid="glideDataEditor"] .gdg-header-cell,
+.stDataFrame thead tr th {
+    background: linear-gradient(135deg, #0F1829 0%, #131d35 100%) !important;
+    color: #94A3B8 !important;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.9px !important;
+    text-transform: uppercase !important;
+    padding: 10px 14px !important;
+    border-bottom: 1px solid #263050 !important;
+    border-right: 1px solid #1A2440 !important;
+    white-space: nowrap !important;
+}
+
+/* Body rows */
+[data-testid="stDataFrame"] tbody tr td,
+.stDataFrame tbody tr td {
+    background: #141929 !important;
+    color: #CBD5E1 !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    padding: 9px 14px !important;
+    border-bottom: 1px solid #1A2440 !important;
+    border-right: 1px solid #1A2440 !important;
+    transition: background 0.15s !important;
+}
+
+/* Alternating row stripes */
+[data-testid="stDataFrame"] tbody tr:nth-child(even) td,
+.stDataFrame tbody tr:nth-child(even) td {
+    background: #101623 !important;
+}
+
+/* Hover highlight */
+[data-testid="stDataFrame"] tbody tr:hover td,
+.stDataFrame tbody tr:hover td {
+    background: rgba(37,99,235,0.1) !important;
+    color: #F1F5F9 !important;
+}
+
+/* Numeric / mono columns */
+[data-testid="stDataFrame"] tbody tr td:not(:first-child) {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 11.5px !important;
+    color: #BFDBFE !important;
+}
+
+/* First column (label) stays DM Sans, slightly bolder */
+[data-testid="stDataFrame"] tbody tr td:first-child {
+    font-family: 'DM Sans', sans-serif !important;
+    font-weight: 500 !important;
+    color: #E2E8F0 !important;
+    border-right: 2px solid #263050 !important;
+}
+
+/* Glide data editor inner cells (Streamlit's newer table engine) */
+[data-testid="stDataFrame"] .dvn-scroller {
+    background: #141929 !important;
+}
+[data-testid="stDataFrame"] canvas {
+    border-radius: 0 0 12px 12px !important;
+}
+
+/* Scrollbar inside table */
+[data-testid="stDataFrame"] ::-webkit-scrollbar { width: 4px; height: 4px; }
+[data-testid="stDataFrame"] ::-webkit-scrollbar-track { background: #0F1525; }
+[data-testid="stDataFrame"] ::-webkit-scrollbar-thumb { background: #263050; border-radius: 2px; }
+
+[data-testid="stDataFrame"] [data-testid="glideDataEditor"] {
+    animation: fadeSlideUp 0.4s ease both;
+}
+
 #MainMenu, footer, header { visibility:hidden; }
 </style>
 """, unsafe_allow_html=True)
@@ -301,15 +387,18 @@ LABEL_MAP = [
 FLUID_CLASSES = ["IRF", "SRF", "Drusenoid PED", "Fibrovascular PED"]
 CLASS_COLORS  = np.array([c for _, c in LABEL_MAP], dtype=np.uint8)
 
+# ── LAYER COLORS: RPE ↔ Choroid SWAPPED ──────────────────────────
+# Old: Choroid=(255,180,50) amber, RPE=(120,80,220) violet
+# New: Choroid=(120,80,220) violet, RPE=(255,180,50) amber
 LAYER_MAP = [
     ("Background", (0,   0,   0  )),
-    ("Choroid",    (255, 180, 50 )),
-    ("NSR",        (80,  200, 120)),
-    ("RPE",        (120, 80,  220)),
+    ("Choroid",    (120, 80,  220)),   # ← now violet/purple (was amber)
+    ("NSR",        (80,  200, 120)),   # unchanged — green
+    ("RPE",        (255, 180, 50 )),   # ← now amber/gold (was violet)
 ]
 LAYER_COLORS = np.array([c for _, c in LAYER_MAP], dtype=np.uint8)
-LAYER_NAMES  = [n for n, _ in LAYER_MAP]          # ["Background","Choroid","NSR","RPE"]
-LAYER_INDICES = {n: i for i, (n, _) in enumerate(LAYER_MAP)}  # quick lookup
+LAYER_NAMES  = [n for n, _ in LAYER_MAP]
+LAYER_INDICES = {n: i for i, (n, _) in enumerate(LAYER_MAP)}
 
 TAG_CLASSES = {
     "IRF":              "tag-irf",
@@ -322,18 +411,15 @@ TAG_CLASSES = {
 
 # ─────────────────────────────────────────────────────────────────
 # Clinical multipliers — per specifications (DO NOT CHANGE)
-# These reflect the clinical severity of each lesion type,
-# independent of their size. The localized load (layer-relative %)
-# is multiplied by these to produce the weighted severity score.
 # ─────────────────────────────────────────────────────────────────
 CLINICAL_MULTIPLIERS = {
-    "Fibrovascular PED": 2.5,   # neovascular, vision-threatening
-    "IRF":               2.0,   # active intra-retinal fluid
-    "SHRM":              1.8,   # sub-retinal hyperreflective material (fibrosis risk)
-    "SRF":               1.5,   # sub-retinal fluid
-    "Drusenoid PED":     1.2,   # AMD marker
-    "HRF":               1.0,   # hyperreflective foci
-    "PH":                0.6,   # pigment hyperplasia
+    "Fibrovascular PED": 2.5,
+    "IRF":               2.0,
+    "SHRM":              1.8,
+    "SRF":               1.5,
+    "Drusenoid PED":     1.2,
+    "HRF":               1.0,
+    "PH":                0.6,
 }
 
 
@@ -467,55 +553,14 @@ def build_layer_only_image(original, layer_mask, layer_alpha=0.50):
 # ══════════════════════════════════════════════════════════════════
 # SECTION 6 — CORE MEASUREMENT PIPELINE (ANATOMICALLY-CORRECT)
 # ══════════════════════════════════════════════════════════════════
-#
-#  THE DILUTION-EFFECT FIX
-#  ─────────────────────────────────────────────────────────────────
-#  Old (WRONG):
-#    load_i = lesion_pixels / TOTAL_PX          ← diluted by background
-#
-#  New (CORRECT — per specification):
-#    layer_dom_i = argmax_j ( |Lesion_i ∩ Layer_j| )
-#    localized_px_i = |Lesion_i ∩ layer_dom_i|
-#    load_i (%) = (localized_px_i / |layer_dom_i|) × 100
-#
-#  This means: "what fraction of the dominant retinal layer
-#  is occupied by this lesion?" — not "what fraction of the
-#  entire 384×384 image (mostly black background)".
-#
-#  Severity:  w_i = (load_i / 100) × Clinical_Multiplier_i
-#  Fluid Idx: sum of load_i for fluid classes (IRF,SRF,DPED,FPED)
-# ══════════════════════════════════════════════════════════════════
 
 def compute_layer_aware_measurements(
     lesion_mask: np.ndarray,
     layer_mask:  np.ndarray,
     pixel_to_mm2: float,
 ) -> dict:
-    """
-    Compute anatomically-correct, layer-relative measurements for
-    every lesion class in a single B-scan.
-
-    Parameters
-    ----------
-    lesion_mask  : (H, W) int array — class indices per LABEL_MAP
-    layer_mask   : (H, W) int array — class indices per LAYER_MAP
-    pixel_to_mm2 : float — device-calibrated conversion factor
-
-    Returns
-    -------
-    dict keyed by lesion name:
-        px_total        : total lesion pixels in image
-        localized_px    : pixels of lesion that fall inside dominant layer
-        layer_dom       : name of dominant layer
-        layer_dom_px    : total size of dominant layer (pixels)
-        load_pct        : (localized_px / layer_dom_px) × 100  ← KEY METRIC
-        image_pct       : (px_total / TOTAL_PX) × 100          ← for reference
-        area_mm2        : px_total × pixel_to_mm2
-        layer_dist      : {layer_name: overlap_pixels} for all layers
-    """
     results = {}
 
-    # Pre-compute layer sizes once (avoids re-computing inside inner loop)
     layer_sizes = {
         l_name: int((layer_mask == l_idx).sum())
         for l_idx, (l_name, _) in enumerate(LAYER_MAP)
@@ -526,10 +571,9 @@ def compute_layer_aware_measurements(
         if lesion_name == "Background":
             continue
 
-        lesion_bool = lesion_mask == cls_idx          # (H,W) bool
+        lesion_bool = lesion_mask == cls_idx
         px_total    = int(lesion_bool.sum())
 
-        # ── Step 1: intersect lesion with every layer ──────────────
         layer_dist = {}
         for l_name, l_size in layer_sizes.items():
             l_idx    = LAYER_INDICES[l_name]
@@ -537,24 +581,16 @@ def compute_layer_aware_measurements(
             if overlap > 0:
                 layer_dist[l_name] = overlap
 
-        # ── Step 2: dominant layer = argmax intersection ───────────
         if layer_dist:
             layer_dom    = max(layer_dist, key=layer_dist.get)
             localized_px = layer_dist[layer_dom]
             layer_dom_px = layer_sizes[layer_dom]
         else:
-            # Lesion has zero pixels OR falls entirely in background
-            # Use NSR as anatomical fallback (most lesions are in NSR)
             layer_dom    = "NSR"
             localized_px = 0
             layer_dom_px = layer_sizes.get("NSR", max(TOTAL_PX, 1))
 
-        # ── Step 3: anatomically-relative pathological load ────────
-        #   load_pct = (localized_px / layer_dom_px) × 100
-        #   This is the CORRECT denominator — not TOTAL_PX
         load_pct   = round(localized_px / max(layer_dom_px, 1) * 100, 4)
-
-        # ── Legacy image-level % kept for reference only ───────────
         image_pct  = round(px_total / TOTAL_PX * 100, 4)
         area_mm2   = round(px_total * pixel_to_mm2, 4)
 
@@ -563,8 +599,8 @@ def compute_layer_aware_measurements(
             "localized_px": localized_px,
             "layer_dom":    layer_dom,
             "layer_dom_px": layer_dom_px,
-            "load_pct":     load_pct,       # ← PRIMARY metric (layer-relative)
-            "image_pct":    image_pct,      # ← reference only
+            "load_pct":     load_pct,
+            "image_pct":    image_pct,
             "area_mm2":     area_mm2,
             "layer_dist":   layer_dist,
         }
@@ -573,46 +609,17 @@ def compute_layer_aware_measurements(
 
 
 def compute_dynamic_severity_weights(measurements: dict) -> dict:
-    """
-    Compute per-lesion dynamic severity weight per specification:
-
-        w_i = (load_pct_i / 100) × Clinical_Multiplier_i
-
-    where load_pct_i is the layer-relative pathological load,
-    NOT the image-level pixel fraction.
-
-    Returns
-    -------
-    dict keyed by lesion name → float weight (0 … ~2.5)
-    """
     weights = {}
     for lesion_name, vals in measurements.items():
         if vals["px_total"] == 0:
             weights[lesion_name] = 0.0
             continue
         cm      = CLINICAL_MULTIPLIERS.get(lesion_name, 1.0)
-        # load_pct is already in [0, 100], divide by 100 to normalise to [0, 1]
         weights[lesion_name] = round((vals["load_pct"] / 100.0) * cm, 6)
-
     return weights
 
 
 def compute_localized_fluid_index(measurements: dict) -> float:
-    """
-    Localized Fluid Index — the sum of layer-relative loads for
-    the four fluid classes (IRF, SRF, Drusenoid PED, Fibrovascular PED).
-
-    Each load is already in % of its dominant layer, so the sum
-    can theoretically exceed 100 if multiple fluid classes each fill
-    their respective layers completely (e.g. IRF fills 80% of NSR
-    AND SRF fills 60% of RPE → Fluid Index = 140%).
-
-    A cap at 100% is NOT applied — the uncapped value is clinically
-    more informative (multi-layer fluid burden).
-
-    Old formula (WRONG):  sum(fluid_px) / TOTAL_PX × 100
-    New formula (CORRECT): sum(load_pct_i for i in FLUID_CLASSES)
-    """
     total_load = 0.0
     for cls in FLUID_CLASSES:
         if cls in measurements:
@@ -621,79 +628,28 @@ def compute_localized_fluid_index(measurements: dict) -> float:
 
 
 def compute_severity_score(measurements: dict, dyn_weights: dict) -> float:
-    """
-    Global Severity Score — weighted sum of localized loads, scaled to [0, 100].
-
-    Score = Σ_i ( w_i × load_pct_i )
-
-    where:
-        w_i       = (load_pct_i / 100) × Clinical_Multiplier_i
-        load_pct_i = layer-relative load (0–100 %)
-
-    Substituting w_i:
-        Score_raw = Σ_i ( (load_pct_i²/ 100) × Clinical_Multiplier_i )
-
-    The raw score is quadratic in load_pct (more severe lesions are
-    penalised super-linearly). We normalise by the theoretical maximum
-    (all layers 100% filled with highest-multiplier lesion) to keep
-    the output in [0, 100].
-
-    Theoretical max per lesion type:
-        max raw contribution = (100²/100) × max_multiplier = 100 × 2.5 = 250
-    With 7 lesion classes: theoretical max = 250 (dominated by single
-    highest-weight class — multi-lesion situations sum naturally).
-
-    Normalisation constant: 250 → maps worst-case single lesion to 100.
-    """
-    NORM_CONSTANT = 250.0   # see derivation above
-
+    NORM_CONSTANT = 250.0
     raw = 0.0
     for lesion_name, vals in measurements.items():
         if vals["px_total"] == 0:
             continue
-        lp = vals["load_pct"]            # layer-relative load (%)
+        lp = vals["load_pct"]
         cm = CLINICAL_MULTIPLIERS.get(lesion_name, 1.0)
-        raw += (lp ** 2 / 100.0) * cm   # quadratic penalty × clinical multiplier
-
+        raw += (lp ** 2 / 100.0) * cm
     return round(min(raw / NORM_CONSTANT * 100.0, 100.0), 1)
 
 
 def analyze_scan(img: Image.Image, lesion_model, layer_model, pixel_to_mm2: float):
-    """
-    Full per-scan analysis pipeline.
+    lesion_mask = run_lesion_model(img, lesion_model)
+    layer_mask  = run_layer_model(img, layer_model)
 
-    Returns
-    -------
-    lesion_overlay : PIL.Image
-    layer_overlay  : PIL.Image
-    composite      : PIL.Image
-    stats          : {lesion_name: raw_pixel_count}   (for charting)
-    layer_stats    : {layer_name:  raw_pixel_count}
-    fluid_idx      : float — localized fluid index (%)
-    sev_score      : float — severity score 0-100
-    sev_grade      : str
-    sev_color      : str (hex)
-    measurements   : dict — full localized measurement data
-    dyn_weights    : dict — per-lesion dynamic weights
-    """
-    lesion_mask = run_lesion_model(img, lesion_model)   # (H,W) int
-    layer_mask  = run_layer_model(img, layer_model)     # (H,W) int
-
-    # ── Raw pixel counts (for bar charts) ──
     stats       = {name: int((lesion_mask == i).sum()) for i, (name, _) in enumerate(LABEL_MAP)}
     layer_stats = {name: int((layer_mask  == i).sum()) for i, (name, _) in enumerate(LAYER_MAP)}
 
-    # ── Localized measurements ──────────────────────────────────────
     measurements = compute_layer_aware_measurements(lesion_mask, layer_mask, pixel_to_mm2)
-
-    # ── Dynamic weights ─────────────────────────────────────────────
-    dyn_weights = compute_dynamic_severity_weights(measurements)
-
-    # ── Localized Fluid Index ────────────────────────────────────────
-    fluid_idx = compute_localized_fluid_index(measurements)
-
-    # ── Severity Score ───────────────────────────────────────────────
-    sev_score = compute_severity_score(measurements, dyn_weights)
+    dyn_weights  = compute_dynamic_severity_weights(measurements)
+    fluid_idx    = compute_localized_fluid_index(measurements)
+    sev_score    = compute_severity_score(measurements, dyn_weights)
 
     if sev_score > 60:
         sev_grade, sev_color = "SEVERE",   "#F87171"
@@ -812,9 +768,8 @@ def create_medical_pdf(p_info, dr_name, report_text, visit_summary=None, device_
 # ══════════════════════════════════════════════════════════════════
 
 def fluid_color(val):
-    """Color based on localized fluid load %."""
-    if val > 15: return "#F87171"    # >15% of dominant layer = high
-    if val > 5:  return "#FCD34D"    # 5-15% = moderate
+    if val > 15: return "#F87171"
+    if val > 5:  return "#FCD34D"
     return "#34D399"
 
 def severity_color(val):
@@ -832,7 +787,6 @@ def metric_card(label, value, sub, color="#E2E8F0", small=False):
     </div>"""
 
 def fluid_bar(pct, color, label="Fluid Load (Layer-Relative)"):
-    """Bar showing fluid load as % of dominant layer (not total image)."""
     width = min(pct, 100)
     return f"""<div class="fluid-bar-wrap">
       <div class="fluid-bar-label">
@@ -852,9 +806,9 @@ def severity_bar(score, color):
     </div>"""
 
 def load_bar(load_pct, layer_name, color):
-    """Mini bar showing % of dominant layer occupied by lesion."""
     width = min(load_pct, 100)
-    lc = {"Choroid":"#FFB432","NSR":"#50C878","RPE":"#7850DC"}.get(layer_name,"#64748B")
+    # ── Updated hex values to match swapped LAYER_COLORS ──
+    lc = {"Choroid": "#7850DC", "NSR": "#50C878", "RPE": "#FFB432"}.get(layer_name, "#64748B")
     return f"""<div class="load-bar-wrap">
       <div class="load-bar-label">
         <span class="load-bar-text" style="color:{lc}">{layer_name} layer</span>
@@ -864,7 +818,8 @@ def load_bar(load_pct, layer_name, color):
     </div>"""
 
 def layer_color_hex(name):
-    return {"Choroid":"#FFB432","NSR":"#50C878","RPE":"#7850DC","Unknown":"#64748B"}.get(name,"#94A3B8")
+    # ── Updated to match swapped colors ──
+    return {"Choroid": "#7850DC", "NSR": "#50C878", "RPE": "#FFB432", "Unknown": "#64748B"}.get(name, "#94A3B8")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -900,7 +855,6 @@ st.sidebar.markdown(f"""
 
 st.sidebar.markdown("---")
 
-# ── Formula explanation ──
 st.sidebar.markdown(
     '<div class="formula-box">'
     '<div class="formula-title">⚕ Localized Load Formula</div>'
@@ -928,10 +882,11 @@ for name, (r, g, b) in LABEL_MAP:
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("**LAYER LEGEND**")
+# ── Updated descriptions to match swapped colors ──
 for name, r, g, b, desc in [
-    ("Choroid",  255, 180,  50, "Deep outer — amber"),
-    ("NSR",       80, 200, 120, "Neural sensory — green"),
-    ("RPE",      120,  80, 220, "Pigment epithelium — violet"),
+    ("Choroid", 120,  80, 220, "Deep outer — violet"),      # ← violet now
+    ("NSR",      80, 200, 120, "Neural sensory — green"),   # unchanged
+    ("RPE",     255, 180,  50, "Pigment epithelium — amber"), # ← amber now
 ]:
     st.sidebar.markdown(
         f'<div style="display:flex;align-items:center;gap:8px;padding:3px 0;">'
@@ -1156,7 +1111,6 @@ if visits_input:
 
         st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-        # ── Formula explanation banner ──
         st.markdown("""
         <div class="formula-box">
           <div class="formula-title">⚕ Measurement Pipeline — Dilution-Effect Fixed (v3)</div>
@@ -1172,7 +1126,6 @@ if visits_input:
         </div>
         """, unsafe_allow_html=True)
 
-        # Severity trend
         st.markdown(
             '<div class="section-header">Severity Score — Visit Progression'
             '<span class="section-tag">Layer-Relative Quadratic Score / 100</span></div>',
@@ -1207,7 +1160,6 @@ if visits_input:
         )
         st.plotly_chart(fig_sev, use_container_width=True)
 
-        # Fluid trend (localized)
         st.markdown(
             '<div class="section-header">Fluid Load — Visit Progression'
             '<span class="section-tag">Layer-Relative % (sum of IRF+SRF+PED loads)</span></div>',
@@ -1234,7 +1186,6 @@ if visits_input:
         )
         st.plotly_chart(fig_fl, use_container_width=True)
 
-        # Radar — dynamic weights last visit
         st.markdown(
             '<div class="section-header">Dynamic Severity Weights — Last Visit'
             '<span class="section-tag">w = (load%/100) × clinical_multiplier</span></div>',
@@ -1270,7 +1221,6 @@ if visits_input:
             )
             st.plotly_chart(fig_r, use_container_width=True)
 
-        # Fluid compartment stacked bar — localized loads
         st.markdown(
             '<div class="section-header">Fluid Compartment — Localized Loads per Scan'
             '<span class="section-tag">% of dominant layer per class</span></div>',
@@ -1358,7 +1308,7 @@ if visits_input:
                         "Lesion":               lesion_name,
                         "Dominant Layer":       dom_layer,
                         "Clin. Multiplier":     CLINICAL_MULTIPLIERS.get(lesion_name, "-"),
-                        "Avg Load % (layer)":   avg_load,   # ← PRIMARY
+                        "Avg Load % (layer)":   avg_load,
                         "Dyn. Weight (avg)":    avg_dw,
                         "Total px":             f"{px_sum:,}",
                         "Total Area (mm²)":     total_mm2,
@@ -1429,7 +1379,6 @@ if visits_input:
                         </div>
                         """, unsafe_allow_html=True)
 
-                        # Layer stats
                         layer_tags = ""
                         for l_name, _ in LAYER_MAP:
                             if l_name == "Background": continue
@@ -1442,7 +1391,6 @@ if visits_input:
                                     f'{l_name}: {lpx:,}px</span>'
                                 )
 
-                        # Lesion tags — show localized load%
                         lesion_tags = ""
                         for cls in FLUID_CLASSES:
                             if data.get(cls, 0) > 0:
@@ -1470,7 +1418,6 @@ if visits_input:
                             unsafe_allow_html=True,
                         )
 
-                    # ── Full localized measurement table ──
                     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
                     st.markdown(
                         '<div class="section-header">Localized Pathological Load Table '
@@ -1486,8 +1433,8 @@ if visits_input:
                                 "Dominant Layer":     vals["layer_dom"],
                                 "Localized px":       f"{vals['localized_px']:,}",
                                 "Layer Size px":      f"{vals['layer_dom_px']:,}",
-                                "Load % (layer)":     vals["load_pct"],   # ← KEY
-                                "Image % (ref)":      vals["image_pct"],  # ← OLD (reference)
+                                "Load % (layer)":     vals["load_pct"],
+                                "Image % (ref)":      vals["image_pct"],
                                 "Area (mm²)":         vals["area_mm2"],
                                 "Dyn. Weight":        round(dw, 4),
                                 "Clin. Mult.":        CLINICAL_MULTIPLIERS.get(lesion, "-"),
@@ -1495,7 +1442,6 @@ if visits_input:
                     if meas_rows:
                         st.dataframe(pd.DataFrame(meas_rows), hide_index=True, use_container_width=True)
 
-                    # ── Load bars per fluid class ──
                     fluid_present = [
                         (cls, data["Measurements"][cls])
                         for cls in FLUID_CLASSES
@@ -1551,7 +1497,6 @@ if visits_input:
                     )
                     scan_table = detail_df[cols].to_string(index=False)
 
-                    # Layer-context: localized loads
                     layer_context = ""
                     for scan in all_scan_details[:3]:
                         layer_context += f"  Scan: {scan['Filename']}\n"
