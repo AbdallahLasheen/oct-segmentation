@@ -273,66 +273,58 @@ code { color:#BFDBFE !important; background:#1A2035 !important; }
 ::-webkit-scrollbar-thumb:hover { background:#2563EB; }
 
 /* ══════════════════════════════════════════════════════════════
-   NEW PRO UI ENGINE - HIGH CONTRAST & ANIMATIONS
+   VISION-OCT PRO: CYBER DARK UI ENGINE v3.0
    ══════════════════════════════════════════════════════════════ */
 
-/* إجبار الجداول تظهر بوضوح كريستال */
-[data-testid="stDataFrame"] {
+/* الحاوية الأساسية للجداول - تباين عالي */
+[data-testid="stDataFrame"], [data-testid="stTable"] {
     background: #0F1525 !important;
-    border: 1px solid #2563EB33 !important;
+    border: 1px solid #2563EB44 !important;
     border-radius: 12px !important;
+    padding: 10px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
 }
 
-/* حل مشكلة الكلام اللي مش باين: إجبار اللون الأبيض للنص */
+/* حل نهائي لمشكلة الكلام: إجبار اللون الأبيض الناصع على كل خلية */
 div[data-testid="stDataFrame"] * {
-    color: #F8FAFC !important;
+    color: #FFFFFF !important;
     font-family: 'DM Mono', monospace !important;
 }
 
-/* تلوين هيدر الجدول بلون مميز وواضح */
+/* تجميل الهيدر (عناوين الجدول) */
 [data-testid="stDataFrame"] thead tr th {
     background-color: #1E2840 !important;
-    color: #7DD3E8 !important;
+    color: #60A5FA !important;
     font-weight: 700 !important;
     border-bottom: 2px solid #2563EB !important;
+    text-transform: uppercase !important;
 }
 
-/* أنيميشن التنقل بين الـ Tabs */
+/* أنيميشن ناعم للتنقل بين الـ Tabs */
 .stTabs [data-baseweb="tab-panel"] {
-    animation: slideUpFade 0.5s ease-out both;
+    animation: slideUpFade 0.4s ease-out both;
 }
 
 @keyframes slideUpFade {
-    from { transform: translateY(20px); opacity: 0; }
+    from { transform: translateY(15px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* تأثير خط الليزر (Scanning Laser) أثناء التحليل */
-.scanning-container {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid #2563EB;
-    border-radius: 10px;
-}
-
-.scanning-line {
-    width: 100%;
-    height: 3px;
-    background: linear-gradient(to bottom, transparent, #2563EB, transparent);
+/* تأثير خط الليزر (Laser Scanner) */
+.scanning-laser {
+    width: 100%; height: 3px;
+    background: #2563EB;
+    box-shadow: 0 0 20px #2563EB;
     position: absolute;
-    top: 0;
-    left: 0;
-    box-shadow: 0 0 15px #2563EB;
-    animation: scanMove 2.5s linear infinite;
-    z-index: 5;
+    z-index: 10;
+    animation: scanAnimation 2s linear infinite;
 }
 
-@keyframes scanMove {
+@keyframes scanAnimation {
     0% { top: 0%; }
     100% { top: 100%; }
 }
 
-/* إخفاء القوائم الافتراضية لستريمليت */
 #MainMenu, footer, header { visibility:hidden; }
 </style>
 """, unsafe_allow_html=True)
